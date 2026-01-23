@@ -1,0 +1,133 @@
+
+:root {
+  --system-blue: #00d4ff;
+  --system-purple: #7b68ee;
+  --bg-dark: #0a0a0a;
+  --card-bg: #151515;
+}
+body {
+  background-color: var(--bg-dark);
+  color: white;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  margin: 0;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+/* STATUS DO JOGADOR */
+.player-status {
+  width: 100%;
+  max-width: 400px;
+  background: linear-gradient(145deg, #1a1a1a, #0a0a0a);
+  border: 1px solid var(--system-blue);
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+  margin-bottom: 30px;
+  text-align: center;
+}
+.rank-display {
+  font-size: 3.5rem;
+  font-weight: 900;
+  font-style: italic;
+  color: var(--system-blue);
+  text-shadow: 0 0 15px var(--system-blue);
+  margin: 10px 0;
+}
+.player-name { font-size: 1.2rem; font-weight: bold; }
+.xp-bar-container {
+  width: 100%;
+  height: 10px;
+  background: #333;
+  border-radius: 5px;
+  margin-top: 10px;
+  overflow: hidden;
+}
+.xp-bar-fill {
+  height: 100%;
+  background: var(--system-blue);
+  width: 0%;
+  transition: width 0.3s ease;
+  box-shadow: 0 0 10px var(--system-blue);
+}
+.xp-text { font-size: 0.8rem; color: #888; margin-top: 8px; }
+.quest-btn {
+  background: none;
+  border: 1px solid var(--system-blue);
+  color: var(--system-blue);
+  padding: 15px 30px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: 0.3s;
+  margin-top: 20px;
+}
+.quest-btn:active {
+  background: var(--system-blue);
+  color: black;
+  box-shadow: 0 0 30px var(--system-blue);
+}
+
+/* RELATÓRIO DE RANKS (cards) */
+.rank-report {
+  width: 100%;
+  max-width: 560px;
+  margin-top: 28px;
+}
+.rank-report h2 {
+  font-size: 1rem;
+  color: var(--system-blue);
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  margin: 0 0 14px 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(0,212,255,0.25);
+  text-shadow: 0 0 8px rgba(0,212,255,0.35);
+}
+.rank-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--card-bg);
+  border: 1px solid #1e1e1e;
+  border-radius: 10px;
+  padding: 14px 16px 14px 18px;
+  margin: 10px 0;
+  box-shadow: 0 8px 22px rgba(0,0,0,0.35);
+  overflow: hidden;
+}
+.rank-card::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 6px;
+  background: linear-gradient(180deg, var(--bar-color), rgba(0,0,0,0.0));
+  box-shadow: 0 0 18px var(--bar-color);
+}
+.rank-card .info { display: flex; flex-direction: column; gap: 4px; }
+.rank-card .name { font-weight: 700; color: #e6f7ff; letter-spacing: 0.4px; }
+.rank-card .subtitle { font-size: 0.82rem; color: #9aa6ac; }
+.rank-card .tag {
+  font-weight: 900;
+  font-style: italic;
+  font-size: 1.1rem;
+  padding: 6px 12px;
+  border-radius: 6px;
+  letter-spacing: 1px;
+  color: #0a0a0a;
+  background: #e6f7ff;
+  text-shadow: none;
+  box-shadow: 0 0 16px rgba(255,255,255,0.15);
+  transform: translateZ(0);
+}
+.rank-card[data-rank-color] .tag {
+  background: color-mix(in srgb, var(--bar-color) 85%, white);
+  color: #051014;
+  box-shadow: 0 0 18px color-mix(in srgb, var(--bar-color) 70%, transparent);
+}
+.rank-card:active,
+.rank-card:hover { transform: translateY(-1px); transition: transform 0.2s ease; }
