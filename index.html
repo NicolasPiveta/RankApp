@@ -26,6 +26,7 @@
       flex-direction: column;
       align-items: center;
     }
+    /* STATUS DO JOGADOR */
     .player-status {
       width: 100%;
       max-width: 400px;
@@ -60,6 +61,7 @@
       transition: width 0.3s ease;
       box-shadow: 0 0 10px var(--system-blue);
     }
+    /* Botão de Missão */
     .quest-btn {
       background: none;
       border: 1px solid var(--system-blue);
@@ -77,6 +79,8 @@
       color: black;
       box-shadow: 0 0 30px var(--system-blue);
     }
+
+    /* Lista de Ranking original */
     .ranking-list { width: 100%; max-width: 400px; }
     .ranking-item {
       display: flex;
@@ -89,6 +93,94 @@
     }
     .rank-tag { font-weight: bold; color: var(--system-blue); }
     h2 { font-size: 1rem; color: var(--system-blue); text-transform: uppercase; letter-spacing: 2px; }
+
+    /* =======================
+       RELATÓRIO DE RANKS (cards)
+       ======================= */
+    .rank-report {
+      width: 100%;
+      max-width: 560px;
+      margin-top: 28px;
+    }
+
+    .rank-report h2 {
+      font-size: 1rem;
+      color: var(--system-blue);
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      margin: 0 0 14px 0;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(0,212,255,0.25);
+      text-shadow: 0 0 8px rgba(0,212,255,0.35);
+    }
+
+    .rank-card {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: var(--card-bg);
+      border: 1px solid #1e1e1e;
+      border-radius: 10px;
+      padding: 14px 16px 14px 18px;
+      margin: 10px 0;
+      box-shadow: 0 8px 22px rgba(0,0,0,0.35);
+      overflow: hidden;
+    }
+
+    .rank-card::before {
+      content: "";
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 6px;
+      background: linear-gradient(180deg, var(--bar-color), rgba(0,0,0,0.0));
+      box-shadow: 0 0 18px var(--bar-color);
+    }
+
+    .rank-card .info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .rank-card .name {
+      font-weight: 700;
+      color: #e6f7ff;
+      letter-spacing: 0.4px;
+    }
+
+    .rank-card .subtitle {
+      font-size: 0.82rem;
+      color: #9aa6ac;
+    }
+
+    .rank-card .tag {
+      font-weight: 900;
+      font-style: italic;
+      font-size: 1.1rem;
+      padding: 6px 12px;
+      border-radius: 6px;
+      letter-spacing: 1px;
+      color: #0a0a0a;
+      background: #e6f7ff;
+      text-shadow: none;
+      box-shadow: 0 0 16px rgba(255,255,255,0.15);
+      transform: translateZ(0);
+    }
+
+    .rank-card[data-rank-color] .tag {
+      background: #e6f7ff;
+      background: color-mix(in srgb, var(--bar-color) 85%, white);
+      color: #051014;
+      box-shadow: 0 0 18px color-mix(in srgb, var(--bar-color) 70%, transparent);
+    }
+
+    .rank-card:active,
+    .rank-card:hover {
+      transform: translateY(-1px);
+      transition: transform 0.2s ease;
+    }
   </style>
 </head>
 <body>
@@ -115,6 +207,12 @@
     </div>
   </div>
 
+  <!-- RELATÓRIO DE RANKS -->
+  <section id="rank-report" class="rank-report">
+    <h2>[ RELATÓRIO DE RANKS ]</h2>
+    <div id="rank-cards"></div>
+  </section>
+
   <script>
     // Lógica do Sistema
     let xp = localStorage.getItem('xp') ? parseInt(localStorage.getItem('xp')) : 0;
@@ -131,15 +229,13 @@
       let currentRank = ranks[0];
       let nextRank = ranks[1] || ranks[0];
 
-      // Encontrar rank atual
       for (let i = 0; i < ranks.length; i++) {
         if (xp >= ranks[i].minXp) {
           currentRank = ranks[i];
-          nextRank = ranks[i + 1] || ranks[i]; // correção
+          nextRank = ranks[i + 1] || ranks[i];
         }
       }
 
-      // Atualizar textos e cores
       const rankEl = document.getElementById('rank-text');
       rankEl.innerText = currentRank.name;
       rankEl.style.color = currentRank.color;
@@ -147,7 +243,6 @@
 
       document.getElementById('list-rank').innerText = currentRank.name;
 
-      // Barra de progresso
       const xpNeededForNext = Math.max(1, nextRank.minXp - currentRank.minXp);
       const currentXpInRank = xp - currentRank.minXp;
       let progress = (currentXpInRank / xpNeededForNext) * 100;
@@ -177,6 +272,50 @@
         navigator.serviceWorker.register('./service-worker.js').catch(console.error);
       });
     }
+
+    // =======================
+    // RELATÓRIO DE RANKS - DADOS E RENDER
+    // =======================
+    const rankColors = {
+      'MONARCA': '#7b68ee',
+      'NACIONAL': '#00ff9d',
+      'S': '#FFD700',
+      'A': '#FF2424',
+      'B': '#9C27B0',
+      'C': '#2196F3',
+      'D': '#4CAF50',
+      'E': '#9e9e9e'
+    };
+
+    const hunters = [
+      { name: 'Sung Jin-Woo', subtitle: 'Monarca das Sombras', rank: 'MONARCA' },
+      { name: 'Thomas Andre', subtitle: 'Tanque (Goliath)', rank: 'NACIONAL' },
+      { name: 'Cha Hae-In', subtitle: 'Lutadora', rank: 'S' },
+      { name: 'Woo Jin-Chul', subtitle: 'Associação de Caçadores', rank: 'A' },
+      { name: 'Park Hee-Jin', subtitle: 'Maga (Guilda White Tiger)', rank: 'B' },
+      { name: 'Song Chi-Yul', subtitle: 'Mago / Instrutor', rank: 'C' },
+      { name: 'Yoo Jin-Ho', subtitle: 'Tanque (Guilda Ahjin)', rank: 'D' },
+      { name: 'Caçador Novato', subtitle: 'Despertado Recente', rank: 'E' }
+    ];
+
+    function renderRankCards() {
+      const wrap = document.getElementById('rank-cards');
+      if (!wrap) return;
+      wrap.innerHTML = hunters.map(h => {
+        const color = rankColors[h.rank] || '#00d4ff';
+        return `
+          <article class="rank-card" style="--bar-color:${color}" data-rank-color="${color}">
+            <div class="info">
+              <div class="name">${h.name}</div>
+              <div class="subtitle">${h.subtitle}</div>
+            </div>
+            <div class="tag">${h.rank}</div>
+          </article>
+        `;
+      }).join('');
+    }
+
+    renderRankCards();
   </script>
 </body>
 </html>
