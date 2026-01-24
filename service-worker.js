@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'solo-v4';
+const CACHE_NAME = 'solo-v5';
 const ASSETS = [
   './',
   './index.html',
@@ -9,7 +9,6 @@ const ASSETS = [
   './icons/icon-512.png'
 ];
 
-// Enable navigation preload + cleanup old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
     if ('navigationPreload' in self.registration) {
@@ -21,13 +20,11 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Pre-cache essential assets
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)));
   self.skipWaiting();
 });
 
-// Helpers
 async function cacheFirst(request) {
   const cached = await caches.match(request, { ignoreSearch: true });
   return cached || fetch(request);
@@ -36,14 +33,10 @@ async function cacheFirst(request) {
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   const url = new URL(req.url);
-
-  // Always fetch fresh for manifest and SW itself
   if (url.pathname.endsWith('/manifest.json') || url.pathname.endsWith('/service-worker.js')) {
     event.respondWith(fetch(req).catch(() => caches.match(req)));
     return;
   }
-
-  // Navigations: network-first with offline fallback
   if (req.mode === 'navigate') {
     event.respondWith((async () => {
       try {
@@ -60,7 +53,5 @@ self.addEventListener('fetch', (event) => {
     })());
     return;
   }
-
-  // Other static assets: cache-first
   event.respondWith(cacheFirst(req));
 });
