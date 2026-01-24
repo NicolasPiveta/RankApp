@@ -111,6 +111,26 @@ body {
   50% { opacity: 1; }
 }
 
+.rank-test-controls {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin: 30px 0 0;
+  opacity: 0.9;
+}
+
+.rank-test-controls .mini-btn {
+  padding: 6px 10px;
+  background: #111;
+  border: 1px solid #2de1ff;
+  border-radius: 8px;
+  color: #e6f7ff;
+  font-size: 0.9rem;
+}
+
+.rank-test-controls .mini-btn:active {
+  transform: translateY(1px);
+}
 
 .player-name {
   font-size: 1.2rem;
