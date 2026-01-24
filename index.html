@@ -133,7 +133,7 @@
   function highlightCurrentRank(current){document.querySelectorAll('.rank-card').forEach(c=>{c.classList.toggle('current-rank',c.getAttribute('data-rank')===current)})}
   function getTitleByRank(rankLetter){const found=rankCatalog.find(r=>r.rank===rankLetter);return found?found.title:''}
 
-  // ===== Personagens (PNG transparente)
+  // ===== Personagens (PNG transparente Man/Woman)
   const characters=[
     {id:'man',   name:'Personagem M', src:'Man.png'},
     {id:'woman', name:'Personagem F', src:'Woman.png'}
