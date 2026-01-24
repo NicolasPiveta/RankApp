@@ -27,7 +27,7 @@
     <button class="quest-btn" onclick="gainXP()">Completar Missão Diária</button>
   </div>
 
-  <!-- RELATÓRIO DE RANKS -->
+  <!-- RELATÓRIO DE RANKS (fitness) -->
   <section id="rank-report" class="rank-report">
     <h2>[ RELATÓRIO DE RANKS ]</h2>
     <div id="rank-cards"></div>
@@ -63,10 +63,6 @@
       rankEl.style.color = currentRank.color;
       rankEl.style.textShadow = `0 0 15px ${currentRank.color}`;
 
-      // Atualiza tag de rank se existir (removemos Ranking Mundial)
-      const listRankEl = document.getElementById('list-rank');
-      if (listRankEl) listRankEl.innerText = currentRank.name;
-
       const xpNeededForNext = Math.max(1, nextRank.minXp - currentRank.minXp);
       const currentXpInRank = xp - currentRank.minXp;
       let progress = (currentXpInRank / xpNeededForNext) * 100;
@@ -80,6 +76,9 @@
       xpText.innerText = currentRank.name === 'S' ? `XP: ${xp} (máximo)` : `XP: ${xp} / ${nextRank.minXp}`;
 
       localStorage.setItem('xp', xp);
+
+      // Destaque do card do rank atual
+      highlightCurrentRank(currentRank.name);
     }
 
     function gainXP() {
@@ -98,45 +97,52 @@
     }
 
     // =======================
-    // RELATÓRIO DE RANKS - DADOS E RENDER
+    // RELATÓRIO DE RANKS - FITNESS
     // =======================
     const rankColors = {
-      'MONARCA': '#7b68ee',
-      'NACIONAL': '#00ff9d',
-      'S': '#FFD700',
-      'A': '#FF2424',
-      'B': '#9C27B0',
-      'C': '#2196F3',
-      'D': '#4CAF50',
-      'E': '#9e9e9e'
+      'S': '#FFD700', // Monstro
+      'A': '#FF2424', // Elite da Academia
+      'B': '#9C27B0', // Atleta de Base
+      'C': '#2196F3', // Intermediário
+      'D': '#4CAF50', // Consistente
+      'E': '#9e9e9e'  // Iniciante de Ferro
     };
 
-    const hunters = [
-      { name: 'Sung Jin-Woo', subtitle: 'Monarca das Sombras', rank: 'MONARCA' },
-      { name: 'Thomas Andre', subtitle: 'Tanque (Goliath)', rank: 'NACIONAL' },
-      { name: 'Cha Hae-In', subtitle: 'Lutadora', rank: 'S' },
-      { name: 'Woo Jin-Chul', subtitle: 'Associação de Caçadores', rank: 'A' },
-      { name: 'Park Hee-Jin', subtitle: 'Maga (Guilda White Tiger)', rank: 'B' },
-      { name: 'Song Chi-Yul', subtitle: 'Mago / Instrutor', rank: 'C' },
-      { name: 'Yoo Jin-Ho', subtitle: 'Tanque (Guilda Ahjin)', rank: 'D' },
-      { name: 'Caçador Novato', subtitle: 'Despertado Recente', rank: 'E' }
+    const rankCatalog = [
+      { rank: 'S', title: 'Monstro',            subtitle: 'Pico de performance • Referência local' },
+      { rank: 'A', title: 'Elite da Academia',  subtitle: 'Força de alto nível • Missões de alto risco' },
+      { rank: 'B', title: 'Atleta de Base',     subtitle: 'Volume sólido • Rotina avançada' },
+      { rank: 'C', title: 'Intermediário',      subtitle: 'Técnica estável • Operações regulares' },
+      { rank: 'D', title: 'Consistente',        subtitle: 'Disciplina em formação • Em ascensão' },
+      { rank: 'E', title: 'Iniciante de Ferro', subtitle: 'Primeiros treinos • Despertado recente' }
     ];
 
     function renderRankCards() {
       const wrap = document.getElementById('rank-cards');
       if (!wrap) return;
-      wrap.innerHTML = hunters.map(h => {
-        const color = rankColors[h.rank] || '#00d4ff';
+      wrap.innerHTML = rankCatalog.map(item => {
+        const color = rankColors[item.rank] || '#00d4ff';
         return `
-          <article class="rank-card" style="--bar-color:${color}" data-rank-color="${color}">
+          <article class="rank-card" data-rank="${item.rank}" style="--bar-color:${color}">
             <div class="info">
-              <div class="name">${h.name}</div>
-              <div class="subtitle">${h.subtitle}</div>
+              <div class="name">${item.title}</div>
+              <div class="subtitle">${item.subtitle}</div>
             </div>
-            <div class="tag">${h.rank}</div>
+            <div class="tag">${item.rank}</div>
           </article>
         `;
       }).join('');
+    }
+
+    function highlightCurrentRank(current) {
+      const cards = document.querySelectorAll('.rank-card');
+      cards.forEach(c => {
+        if (c.getAttribute('data-rank') === current) {
+          c.classList.add('current-rank');
+        } else {
+          c.classList.remove('current-rank');
+        }
+      });
     }
 
     renderRankCards();
