@@ -1,8 +1,8 @@
 
 {
-  "id": "solo-leveling-system",
-  "name": "Solo Leveling System",
-  "short_name": "Solo",
+  "id": "rankapp",
+  "name": "RankApp",
+  "short_name": "RankApp",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
