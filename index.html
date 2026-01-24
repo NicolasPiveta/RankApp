@@ -1,9 +1,11 @@
+
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="RankApp" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#00d4ff" />
   <title>RankApp</title>
@@ -12,135 +14,179 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <!-- STATUS DO JOGADOR -->
-  <div class="player-status">
-    <h2>[ STATUS DO JOGADOR ]</h2>
-    <div id="rank-text" class="rank-display">E</div>
-    <div id="player-name" class="player-name">HUNTER</div>
-
-    <div class="xp-bar-container">
-      <div id="xp-fill" class="xp-bar-fill"></div>
+  <!-- VIEW: RANK (Status + Relatório) -->
+  <section id="view-rank" class="view active">
+    <div class="player-status">
+      <h2>[ STATUS DO JOGADOR ]</h2>
+      <div id="rank-text" class="rank-display">E</div>
+      <div id="player-name" class="player-name">HUNTER</div>
+      <div class="xp-bar-container"><div id="xp-fill" class="xp-bar-fill"></div></div>
+      <p id="xp-text" class="xp-text">XP: 0 / 100</p>
     </div>
-    <p id="xp-text" class="xp-text">XP: 0 / 100</p>
 
-    <button class="quest-btn" onclick="gainXP()">Completar Missão Diária</button>
-  </div>
-
-  <!-- RELATÓRIO DE RANKS (fitness) -->
-  <section id="rank-report" class="rank-report">
-    <h2>[ RELATÓRIO DE RANKS ]</h2>
-    <div id="rank-cards"></div>
+    <section id="rank-report" class="rank-report">
+      <h2>[ RELATÓRIO DE RANKS ]</h2>
+      <div id="rank-cards"></div>
+    </section>
   </section>
 
+  <!-- VIEW: MISSÕES (Diárias + Semanais) -->
+  <section id="view-missions" class="view" aria-hidden="true">
+    <section id="missions" class="missions">
+      <div class="missions-header">
+        <h2>[ MISSÕES ]</h2>
+        <div id="streak-pill" class="streak-pill" title="Dias seguidos com diárias completas">🔥 0</div>
+      </div>
+      <div class="missions-group">
+        <h3>Diárias</h3>
+        <div id="daily-list" class="mission-list"></div>
+        <small class="hint">Bônus diário: +10 XP ao completar todas as diárias do dia.</small>
+      </div>
+      <div class="missions-group">
+        <h3>Semanais</h3>
+        <div id="weekly-list" class="mission-list weekly"></div>
+        <small class="hint">Cada meta semanal concluída rende +40 XP.</small>
+      </div>
+    </section>
+  </section>
+
+  <!-- TAB BAR -->
+  <nav class="tabbar" role="tablist" aria-label="Navegação principal">
+    <button class="tab active" role="tab" aria-selected="true" data-tab="rank">🏆 <span>Rank</span></button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="missions">✅ <span>Missões</span></button>
+  </nav>
+
   <script>
-    // =======================
-    // Lógica do Sistema / Status do Jogador
-    // =======================
-    let xp = localStorage.getItem('xp') ? parseInt(localStorage.getItem('xp')) : 0;
-    const ranks = [
-      { name: 'E', minXp: 0,    color: '#9e9e9e' },
-      { name: 'D', minXp: 100,  color: '#4CAF50' },
-      { name: 'C', minXp: 300,  color: '#2196F3' },
-      { name: 'B', minXp: 600,  color: '#9C27B0' },
-      { name: 'A', minXp: 1000, color: '#FF2424' },
-      { name: 'S', minXp: 2000, color: '#FFD700' }
+    // ===== Datas utilitárias =====
+    function pad(n){return n<10? '0'+n : ''+n}
+    function todayStr(){ const d=new Date(); return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); }
+    function isoWeekId(date=new Date()){
+      const d=new Date(Date.UTC(date.getFullYear(),date.getMonth(),date.getDate()));
+      const dayNum=d.getUTCDay()||7; d.setUTCDate(d.getUTCDate()+4-dayNum);
+      const yearStart=new Date(Date.UTC(d.getUTCFullYear(),0,1));
+      const weekNo=Math.ceil((((d-yearStart)/86400000)+1)/7);
+      return d.getUTCFullYear()+"-W"+pad(weekNo);
+    }
+
+    // ===== Estado / Persistência =====
+    const STORAGE_KEY='rankapp_state_v1';
+    function loadState(){
+      try{ const raw=localStorage.getItem(STORAGE_KEY); if(!raw) throw 0; return JSON.parse(raw); }catch(e){
+        return { xpTotal:0,
+                 daily:{ date: todayStr(), items:{train:false, cardio:false, sleep:false}, credited:{train:false, cardio:false}, allBonusGiven:false },
+                 week:{ id: isoWeekId(), counts:{train:0, cardio:0, calories:0}, achieved:{train4:false, cardio4:false, cal700:false} },
+                 streakDays:0,
+                 lastTab:'rank' } }
+    }
+    function saveState(s){ localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }
+
+    let state=loadState();
+    function ensureRollover(){
+      const today=todayStr(); if(state.daily?.date!==today){ state.daily={ date:today, items:{train:false, cardio:false, sleep:false}, credited:{train:false, cardio:false}, allBonusGiven:false }; }
+      const wid=isoWeekId(); if(state.week?.id!==wid){ state.week={ id:wid, counts:{train:0, cardio:0, calories:0}, achieved:{train4:false, cardio4:false, cal700:false} }; }
+    }
+
+    // ===== XP / Rank =====
+    let xp = state.xpTotal||0;
+    const ranks=[
+      {name:'E',minXp:0,color:'#9e9e9e'},
+      {name:'D',minXp:100,color:'#4CAF50'},
+      {name:'C',minXp:300,color:'#2196F3'},
+      {name:'B',minXp:600,color:'#9C27B0'},
+      {name:'A',minXp:1000,color:'#FF2424'},
+      {name:'S',minXp:2000,color:'#FFD700'}
     ];
+    function addXP(a){ xp+=a; state.xpTotal=xp; }
 
-    function updateUI() {
-      let currentRank = ranks[0];
-      let nextRank = ranks[1] || ranks[0];
-
-      for (let i = 0; i < ranks.length; i++) {
-        if (xp >= ranks[i].minXp) {
-          currentRank = ranks[i];
-          nextRank = ranks[i + 1] || ranks[i];
-        }
-      }
-
-      const rankEl = document.getElementById('rank-text');
-      rankEl.innerText = currentRank.name;
-      rankEl.style.color = currentRank.color;
-      rankEl.style.textShadow = `0 0 15px ${currentRank.color}`;
-
-      const xpNeededForNext = Math.max(1, nextRank.minXp - currentRank.minXp);
-      const currentXpInRank = xp - currentRank.minXp;
-      let progress = (currentXpInRank / xpNeededForNext) * 100;
-      if (currentRank.name === 'S') progress = 100;
-
-      const fill = document.getElementById('xp-fill');
-      fill.style.width = progress + "%";
-      fill.style.backgroundColor = currentRank.color;
-
-      const xpText = document.getElementById('xp-text');
-      xpText.innerText = currentRank.name === 'S' ? `XP: ${xp} (máximo)` : `XP: ${xp} / ${nextRank.minXp}`;
-
-      localStorage.setItem('xp', xp);
-
-      // Destaque do card do rank atual
+    function updateUI(){
+      let currentRank=ranks[0], nextRank=ranks[1]||ranks[0];
+      for(let i=0;i<ranks.length;i++){ if(xp>=ranks[i].minXp){ currentRank=ranks[i]; nextRank=ranks[i+1]||ranks[i]; } }
+      const rankEl=document.getElementById('rank-text');
+      rankEl.innerText=currentRank.name; rankEl.style.color=currentRank.color; rankEl.style.textShadow=`0 0 15px ${currentRank.color}`;
+      const need=Math.max(1,nextRank.minXp-currentRank.minXp), have=xp-currentRank.minXp; let pct=(have/need)*100; if(currentRank.name==='S') pct=100;
+      const fill=document.getElementById('xp-fill'); fill.style.width=pct+'%'; fill.style.backgroundColor=currentRank.color;
+      document.getElementById('xp-text').innerText=(currentRank.name==='S')?`XP: ${xp} (máximo)`: `XP: ${xp} / ${nextRank.minXp}`;
+      document.getElementById('streak-pill').textContent='🔥 '+(state.streakDays||0);
       highlightCurrentRank(currentRank.name);
+      saveState(state);
     }
 
-    function gainXP() {
-      xp += 20;
-      updateUI();
-      if (navigator.vibrate) navigator.vibrate(50);
+    // ===== Missões =====
+    const DAILY_XP=20, DAILY_BONUS=10, WEEKLY_BONUS=40;
+    function renderDaily(){
+      const wrap=document.getElementById('daily-list'); const d=state.daily.items;
+      wrap.innerHTML=`
+        ${missionToggle('train','Treinar hoje', d.train)}
+        ${missionToggle('cardio','20 min de cardio', d.cardio)}
+        ${missionToggle('sleep','Sono 7h+', d.sleep)}
+      `;
+      wrap.querySelectorAll('.mission-toggle input').forEach(cb=>{
+        cb.addEventListener('change',e=>{
+          const key=e.target.dataset.key, checked=e.target.checked; state.daily.items[key]=checked; if(checked){ addXP(DAILY_XP); }
+          if(key==='train'){ if(checked && !state.daily.credited.train){ state.week.counts.train++; state.daily.credited.train=true; } if(!checked && state.daily.credited.train){ state.week.counts.train=Math.max(0,state.week.counts.train-1); state.daily.credited.train=false; } }
+          if(key==='cardio'){ if(checked && !state.daily.credited.cardio){ state.week.counts.cardio++; state.daily.credited.cardio=true; } if(!checked && state.daily.credited.cardio){ state.week.counts.cardio=Math.max(0,state.week.counts.cardio-1); state.daily.credited.cardio=false; } }
+          const allDone=state.daily.items.train && state.daily.items.cardio && state.daily.items.sleep; if(allDone && !state.daily.allBonusGiven){ addXP(DAILY_BONUS); state.daily.allBonusGiven=true; state.streakDays=(state.streakDays||0)+1; }
+          checkWeeklyAchievements(); renderWeekly(); updateUI();
+        })
+      })
+    }
+    function missionToggle(key,label,checked){
+      return `<label class="mission-toggle"><input type="checkbox" data-key="${key}" ${checked?'checked':''}/><span class="box"></span><span class="text">${label}</span><span class="xp-pill">+${DAILY_XP} XP</span></label>`;
     }
 
-    // Registrar Service Worker p/ PWA
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./service-worker.js').catch(console.error);
-      });
+    function renderWeekly(){
+      const wrap=document.getElementById('weekly-list'); const c=state.week.counts, a=state.week.achieved;
+      wrap.innerHTML=`
+        ${weeklyProgress('Treinar 4x', c.train, 4, a.train4, 'w-train')}
+        ${weeklyProgress('4x cardio 20 min', c.cardio, 4, a.cardio4, 'w-cardio')}
+        ${weeklyCalories('700 calorias queimadas', c.calories, 700, a.cal700)}
+      `;
+      const add=wrap.querySelector('[data-action="add-cal-100"]'); if(add) add.addEventListener('click',()=>adjustCalories(100));
+      const sub=wrap.querySelector('[data-action="sub-cal-100"]'); if(sub) sub.addEventListener('click',()=>adjustCalories(-100));
     }
+    function weeklyProgress(title,value,target,achieved,id){ const pct=Math.min(100,Math.round((value/target)*100)); return `<div class="weekly-item ${achieved?'done':''}" id="${id}"><div class="w-title">${title}</div><div class="w-bar"><div class="w-fill" style="width:${pct}%"></div></div><div class="w-meta">${value} / ${target}</div>${achieved?'<div class="w-badge">Concluída ✓</div>':''}</div>`; }
+    function weeklyCalories(title,value,target,achieved){ const pct=Math.min(100,Math.round((value/target)*100)); return `<div class="weekly-item ${achieved?'done':''}"><div class="w-title">${title}</div><div class="w-bar"><div class="w-fill" style="width:${pct}%"></div></div><div class="w-meta">${value} / ${target} kcal</div><div class="w-actions"><button class="mini-btn" data-action="sub-cal-100">-100</button><button class="mini-btn" data-action="add-cal-100">+100</button></div>${achieved?'<div class="w-badge">Concluída ✓</div>':''}</div>`; }
+    function adjustCalories(delta){ state.week.counts.calories=Math.max(0,(state.week.counts.calories||0)+delta); checkWeeklyAchievements(); renderWeekly(); updateUI(); }
+    function checkWeeklyAchievements(){ if(state.week.counts.train>=4 && !state.week.achieved.train4){ addXP(WEEKLY_BONUS); state.week.achieved.train4=true; } if(state.week.counts.cardio>=4 && !state.week.achieved.cardio4){ addXP(WEEKLY_BONUS); state.week.achieved.cardio4=true; } if(state.week.counts.calories>=700 && !state.week.achieved.cal700){ addXP(WEEKLY_BONUS); state.week.achieved.cal700=true; } }
 
-    // =======================
-    // RELATÓRIO DE RANKS - FITNESS
-    // =======================
-    const rankColors = {
-      'S': '#FFD700', // Monstro
-      'A': '#FF2424', // Elite da Academia
-      'B': '#9C27B0', // Atleta de Base
-      'C': '#2196F3', // Intermediário
-      'D': '#4CAF50', // Consistente
-      'E': '#9e9e9e'  // Iniciante de Ferro
-    };
-
-    const rankCatalog = [
-      { rank: 'S', title: 'Monstro',            subtitle: 'Pico de performance • Referência local' },
-      { rank: 'A', title: 'Elite da Academia',  subtitle: 'Força de alto nível • Missões de alto risco' },
-      { rank: 'B', title: 'Atleta de Base',     subtitle: 'Volume sólido • Rotina avançada' },
-      { rank: 'C', title: 'Intermediário',      subtitle: 'Técnica estável • Operações regulares' },
-      { rank: 'D', title: 'Consistente',        subtitle: 'Disciplina em formação • Em ascensão' },
-      { rank: 'E', title: 'Iniciante de Ferro', subtitle: 'Primeiros treinos • Despertado recente' }
+    // ===== Relatório de Ranks (fitness) =====
+    const rankColors={ 'S':'#FFD700','A':'#FF2424','B':'#9C27B0','C':'#2196F3','D':'#4CAF50','E':'#9e9e9e' };
+    const rankCatalog=[
+      {rank:'S', title:'Monstro',           subtitle:'Pico de performance • Referência local'},
+      {rank:'A', title:'Elite da Academia', subtitle:'Força de alto nível • Missões de alto risco'},
+      {rank:'B', title:'Atleta de Base',    subtitle:'Volume sólido • Rotina avançada'},
+      {rank:'C', title:'Intermediário',     subtitle:'Técnica estável • Operações regulares'},
+      {rank:'D', title:'Consistente',       subtitle:'Disciplina em formação • Em ascensão'},
+      {rank:'E', title:'Iniciante de Ferro',subtitle:'Primeiros treinos • Despertado recente'}
     ];
+    function renderRankCards(){ const wrap=document.getElementById('rank-cards'); wrap.innerHTML=rankCatalog.map(it=>{ const color=rankColors[it.rank]||'#00d4ff'; return `<article class="rank-card" data-rank="${it.rank}" style="--bar-color:${color}"><div class="info"><div class="name">${it.title}</div><div class="subtitle">${it.subtitle}</div></div><div class="tag">${it.rank}</div></article>`}).join(''); }
+    function highlightCurrentRank(current){ document.querySelectorAll('.rank-card').forEach(c=>{ c.classList.toggle('current-rank', c.getAttribute('data-rank')===current); }); }
 
-    function renderRankCards() {
-      const wrap = document.getElementById('rank-cards');
-      if (!wrap) return;
-      wrap.innerHTML = rankCatalog.map(item => {
-        const color = rankColors[item.rank] || '#00d4ff';
-        return `
-          <article class=\"rank-card\" data-rank=\"${item.rank}\" style=\"--bar-color:${color}\">\n            <div class=\"info\">\n              <div class=\"name\">${item.title}</div>\n              <div class=\"subtitle\">${item.subtitle}</div>\n            </div>\n            <div class=\"tag\">${item.rank}</div>\n          </article>
-        `;
-      }).join('');
+    // ===== Tabs =====
+    function setupTabs(){
+      const tabs=document.querySelectorAll('.tabbar .tab');
+      const viewRank=document.getElementById('view-rank');
+      const viewM=document.getElementById('view-missions');
+      function activate(name){
+        tabs.forEach(t=>{ const on=t.dataset.tab===name; t.classList.toggle('active',on); t.setAttribute('aria-selected', on?'true':'false'); });
+        if(name==='rank'){ viewRank.classList.add('active'); viewRank.removeAttribute('aria-hidden'); viewM.classList.remove('active'); viewM.setAttribute('aria-hidden','true'); }
+        else { viewM.classList.add('active'); viewM.removeAttribute('aria-hidden'); viewRank.classList.remove('active'); viewRank.setAttribute('aria-hidden','true'); }
+        state.lastTab=name; saveState(state);
+      }
+      tabs.forEach(t=>t.addEventListener('click',()=>{ activate(t.dataset.tab); if(navigator.vibrate) navigator.vibrate(10); }));
+      activate(state.lastTab==='missions'?'missions':'rank');
     }
 
-    function highlightCurrentRank(current) {
-      const cards = document.querySelectorAll('.rank-card');
-      cards.forEach(c => {
-        if (c.getAttribute('data-rank') === current) {
-          c.classList.add('current-rank');
-        } else {
-          c.classList.remove('current-rank');
-        }
-      });
-    }
-
-    // ===== CHAMADAS FINAIS (ordem correta) =====
-    // 1) Primeiro cria os cards
+    // ===== Boot =====
+    ensureRollover();
     renderRankCards();
-    // 2) Depois atualiza a UI e destaca o card do rank atual
+    renderDaily();
+    renderWeekly();
     updateUI();
+    setupTabs();
+
+    // SW
+    if('serviceWorker' in navigator){ window.addEventListener('load', ()=>{ navigator.serviceWorker.register('./service-worker.js').catch(console.error); }); }
   </script>
 </body>
 </html>
