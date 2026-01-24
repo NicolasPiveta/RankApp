@@ -160,12 +160,12 @@
     // ===== Relatório de Ranks (fitness) =====
     const rankColors = { 'S': '#FFD700', 'A': '#FF2424', 'B': '#9C27B0', 'C': '#2196F3', 'D': '#4CAF50', 'E': '#9e9e9e' };
     const rankCatalog = [
-      { rank: 'S', title: 'Monstro', subtitle: 'Pico de performance • Referência local' },
-      { rank: 'A', title: 'Elite da Academia', subtitle: 'Força de alto nível • Missões de alto risco' },
-      { rank: 'B', title: 'Atleta de Base', subtitle: 'Volume sólido • Rotina avançada' },
-      { rank: 'C', title: 'Intermediário', subtitle: 'Técnica estável • Operações regulares' },
-      { rank: 'D', title: 'Consistente', subtitle: 'Disciplina em formação • Em ascensão' },
-      { rank: 'E', title: 'Iniciante de Ferro', subtitle: 'Primeiros treinos • Despertado recente' }
+      { rank: 'S', title: 'Monstro', subtitle: 'Performance lendária • Referência absoluta' },
+      { rank: 'A', title: 'Elite', subtitle: 'Força de alto nível • Execução de alto impacto' },
+      { rank: 'B', title: 'Atleta Avançado', subtitle: 'Força elevada • Alta eficiência' },
+      { rank: 'C', title: 'Persistente', subtitle: 'Disciplina ativa • Treinos estruturados' },
+      { rank: 'D', title: 'Consistente', subtitle: 'Comprometido • Em ascensão' },
+      { rank: 'E', title: 'Recruta', subtitle: 'Início da jornada • Despertado recentemente' }
     ];
     function renderRankCards() { const wrap = document.getElementById('rank-cards'); wrap.innerHTML = rankCatalog.map(it => { const color = rankColors[it.rank] || '#00d4ff'; return `<article class="rank-card" data-rank="${it.rank}" style="--bar-color:${color}"><div class="info"><div class="name">${it.title}</div><div class="subtitle">${it.subtitle}</div></div><div class="tag">${it.rank}</div></article>` }).join(''); }
     function highlightCurrentRank(current) { document.querySelectorAll('.rank-card').forEach(c => { c.classList.toggle('current-rank', c.getAttribute('data-rank') === current); }); }
