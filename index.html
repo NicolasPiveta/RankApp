@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -87,8 +86,6 @@
       if (navigator.vibrate) navigator.vibrate(50);
     }
 
-    updateUI();
-
     // Registrar Service Worker p/ PWA
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -123,13 +120,7 @@
       wrap.innerHTML = rankCatalog.map(item => {
         const color = rankColors[item.rank] || '#00d4ff';
         return `
-          <article class="rank-card" data-rank="${item.rank}" style="--bar-color:${color}">
-            <div class="info">
-              <div class="name">${item.title}</div>
-              <div class="subtitle">${item.subtitle}</div>
-            </div>
-            <div class="tag">${item.rank}</div>
-          </article>
+          <article class=\"rank-card\" data-rank=\"${item.rank}\" style=\"--bar-color:${color}\">\n            <div class=\"info\">\n              <div class=\"name\">${item.title}</div>\n              <div class=\"subtitle\">${item.subtitle}</div>\n            </div>\n            <div class=\"tag\">${item.rank}</div>\n          </article>
         `;
       }).join('');
     }
@@ -145,7 +136,11 @@
       });
     }
 
+    // ===== CHAMADAS FINAIS (ordem correta) =====
+    // 1) Primeiro cria os cards
     renderRankCards();
+    // 2) Depois atualiza a UI e destaca o card do rank atual
+    updateUI();
   </script>
 </body>
 </html>
