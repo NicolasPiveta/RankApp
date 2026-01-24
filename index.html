@@ -122,7 +122,7 @@
     const need = Math.max(1, nextRank.minXp - currentRank.minXp), have = xp - currentRank.minXp; let pct = (have / need) * 100; if (currentRank.name === 'S') pct = 100;
     const fill = document.getElementById('xp-fill'); fill.style.width = pct + '%'; fill.style.backgroundColor = currentRank.color;
     const specialMsg = document.getElementById('rank-special-msg');
-    if (currentRank.name === 'S') { specialMsg.textContent = 'Poucos chegam até aqui.'; specialMsg.hidden = false; } else { specialMsg.hidden = true; }
+    if (currentRank.name === 'S') { specialMsg.textContent = 'Você alcançou o ápice desta jornada.'; specialMsg.hidden = false; } else { specialMsg.hidden = true; }
     document.getElementById('xp-text').innerText = (currentRank.name === 'S') ? `XP: ${xp} (máximo)` : `XP: ${xp} / ${nextRank.minXp}`;
     document.getElementById('streak-pill').textContent = '🔥 ' + (state.streakDays || 0);
     highlightCurrentRank(currentRank.name);
