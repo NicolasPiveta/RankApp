@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'solo-v5';
+const CACHE_NAME = 'rankapp-v1';
 const ASSETS = [
   './',
   './index.html',
