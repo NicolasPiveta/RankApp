@@ -14,53 +14,62 @@
   <style>
     .rank-special-msg{margin-top:6px;font-size:0.85rem;opacity:.85;color:#FFD700;text-align:center;animation:glowPulse 3s ease-in-out infinite}
     @keyframes glowPulse{0%,100%{opacity:.7}50%{opacity:1}}
-    .rank-test-controls{display:flex;gap:8px;justify-content:center;margin:10px 0 0;opacity:.9}
+    .rank-test-controls{display:flex;gap:10px;justify-content:center;margin:10px 0 0;opacity:.95}
 
     /* PERSONAGEM */
     .character-view { padding: 12px; }
     .character-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
     .char-card { position: relative; background: rgba(255,255,255,0.03); border: 1px solid rgba(0,212,255,0.35); border-radius: 14px; padding: 10px; cursor: pointer; transition: transform .1s ease, box-shadow .2s ease; }
     .char-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0, 212, 255, 0.15); }
-    .char-card.selected { outline: 2px solid #00d4ff; box-shadow: 0 0 0 4px rgba(0,212,255,0.18) inset; }
-    .char-img-wrap { display:flex; align-items:center; justify-content:center; min-height: 220px; background: radial-gradient(140px 70px at 50% 60%, rgba(0,212,255,.08), transparent); border-radius: 10px; overflow: hidden; }
+    .char-img-wrap { display:flex; align-items:center; justify-content:center; min-height: 200px; background: radial-gradient(140px 70px at 50% 60%, rgba(0,212,255,.08), transparent); border-radius: 10px; overflow: hidden; }
     .char-img { width: 100%; height: auto; object-fit: contain; }
     .char-choose { margin-top: 6px; display: flex; justify-content: center; }
-    .char-choose .mini-btn { padding: 6px 10px; }
 
     /* Personagem selecionado (modo travado) */
     .selected-char { display:flex; gap:12px; align-items:center; background: rgba(255,255,255,0.03); border:1px solid rgba(0,212,255,0.35); border-radius:12px; padding:10px; margin-bottom:10px; }
-    .selected-char .portrait { width: 120px; max-width: 40vw; border-radius: 10px; overflow: hidden; }
+    .selected-char .portrait { width: 110px; max-width: 40vw; border-radius: 10px; overflow: hidden; }
     .selected-char .portrait img { width:100%; height:auto; display:block; }
-    .selected-char .meta { flex:1; }
-    .selected-char .meta .lock { font-size:0.85rem; opacity:.85; }
+    .selected-char .meta { flex:1; min-height: 64px; display:flex; align-items:center; }
+    .selected-char .meta .lock { font-size:0.9rem; opacity:.85; }
 
-    /* Atributos - COMPACT */
+    /* Atributos */
     .attr-panel { background: rgba(255,255,255,0.03); border:1px solid rgba(0,212,255,0.35); border-radius:12px; padding:10px; font-size: 0.95rem; }
     .attr-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; gap:8px; }
     .attr-points { font-weight:600; }
     .attr-list { display:grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap:8px; }
-    .attr-row { display:flex; align-items:center; justify-content:space-between; gap:8px; background: rgba(0,212,255,0.06); border:1px solid rgba(0,212,255,0.25); border-radius:10px; padding:6px 8px; min-height:42px; }
-    .attr-name { font-weight:600; font-size: 0.95rem; line-height:1.1; word-break: break-word; hyphens: auto; }
-    .attr-value { font-family: monospace; min-width: 16px; text-align:center; font-size: 0.9rem; }
-    .attr-actions { display:flex; gap:6px; }
-    .attr-actions .mini-btn { padding: 2px 8px; font-size: 0.85rem; line-height:1.1; }
 
-    /* força 2 colunas SEMPRE; reduzir riscos de scroll */
-    .attr-panel { overflow-x: hidden; }
+    /* Linha de atributo com 3 zonas estáveis */
+    .attr-row { display:grid; grid-template-columns: 1fr auto 86px; align-items:center; gap:8px; background: rgba(0,212,255,0.06); border:1px solid rgba(0,212,255,0.25); border-radius:10px; padding:6px 8px; min-height:42px; }
+    .attr-name { font-weight:600; font-size: 0.95rem; line-height:1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .attr-value { font-family: monospace; min-width: 16px; text-align:center; font-size: 0.92rem; }
+    .attr-actions { display:flex; justify-content:flex-end; gap:6px; }
 
-    /* micro-ajustes extras para telas realmente estreitas */
-    @media (max-width: 400px){
-      .selected-char .portrait { width: 110px; }
-      .attr-row { padding:5px 6px; gap:6px; min-height:38px; }
-      .attr-actions .mini-btn { padding: 2px 6px; font-size: 0.82rem; }
+    /* === Botões === */
+    /* Base (não compacta): usada em -100/+100, "Escolher", etc. */
+    .mini-btn { padding: 6px 10px; border-radius: 10px; }
+    /* Compacta só dentro dos atributos (-/+) */
+    .attr-actions .mini-btn { width: 26px; height: 26px; padding: 0; border-radius: 8px; display:inline-flex; align-items:center; justify-content:center; }
+    /* Ícones dos botões de Rank */
+    .icon-btn { width: 30px; height: 30px; padding: 0; border-radius: 9px; display:inline-flex; align-items:center; justify-content:center; }
+
+    /* Toast */
+    #toast-container { position: fixed; left:50%; bottom:24px; transform:translateX(-50%); z-index: 9999; display:flex; flex-direction:column; gap:8px; align-items:center; pointer-events:none; }
+    .toast { background: rgba(0,0,0,0.85); color:#fff; padding:10px 12px; border-radius:10px; box-shadow:0 6px 24px rgba(0,0,0,0.25); font-size:.95rem; animation:fadeInOut 2000ms ease forwards; will-change: opacity, transform; }
+    @keyframes fadeInOut { 0%{opacity:0; transform:translateY(8px)} 10%{opacity:1; transform:translateY(0)} 90%{opacity:1} 100%{opacity:0; transform:translateY(6px)} }
+
+    /* Extra compact */
+    @media (max-width: 380px){
+      .attr-row { grid-template-columns: 1fr auto 78px; min-height:38px; padding:5px 6px; }
+      .attr-actions .mini-btn { width:24px; height:24px; border-radius:7px; }
       .attr-name { font-size: 0.9rem; }
       .attr-head { font-size: 0.92rem; }
+      .selected-char .portrait { width: 100px; }
     }
     @media (max-width: 340px){
-      .selected-char .portrait { width: 100px; }
+      .attr-row { grid-template-columns: 1fr auto 72px; }
+      .attr-actions .mini-btn { width:22px; height:22px; border-radius:6px; }
       .attr-name { font-size: 0.86rem; }
-      .attr-actions .mini-btn { padding: 1px 6px; font-size: 0.8rem; }
-      .attr-value { font-size: 0.85rem; min-width: 14px; }
+      .attr-value { font-size: 0.86rem; min-width: 14px; }
     }
   </style>
 </head>
@@ -72,9 +81,7 @@
       <div id="rank-text" class="rank-display">E</div>
       <div id="player-name" class="player-name" aria-live="polite"></div>
       <div id="rank-special-msg" class="rank-special-msg" hidden></div>
-      <div class="xp-bar-container">
-        <div id="xp-fill" class="xp-bar-fill"></div>
-      </div>
+      <div class="xp-bar-container"><div id="xp-fill" class="xp-bar-fill"></div></div>
       <p id="xp-text" class="xp-text">XP: 0 / 100</p>
     </div>
 
@@ -82,9 +89,9 @@
       <h2>[ SISTEMAS DE RANKS ]</h2>
       <div id="rank-cards"></div>
       <div id="rank-test-controls" class="rank-test-controls">
-        <button id="rank-down" class="mini-btn">⬇️ Rank -</button>
-        <button id="rank-up" class="mini-btn">⬆️ Rank +</button>
-        <button id="reset-all" class="mini-btn">♻️ Resetar tudo</button>
+        <button id="rank-down" class="mini-btn icon-btn" title="Rank -">⬇️</button>
+        <button id="rank-up" class="mini-btn icon-btn" title="Rank +">⬆️</button>
+        <button id="reset-all" class="mini-btn icon-btn" title="Resetar tudo">♻️</button>
       </div>
     </section>
   </section>
@@ -133,7 +140,7 @@
   function pad(n){return n<10?'0'+n:''+n}
   function todayStr(){const d=new Date();return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())}
   function isoWeekId(date=new Date()){const d=new Date(Date.UTC(date.getFullYear(),date.getMonth(),date.getDate()));const dayNum=d.getUTCDay()||7;d.setUTCDate(d.getUTCDate()+4-dayNum);const yearStart=new Date(Date.UTC(d.getUTCFullYear(),0,1));const weekNo=Math.ceil((((d-yearStart)/86400000)+1)/7);return d.getUTCFullYear()+"-W"+pad(weekNo)}
-  function showToast(msg){ const c=document.getElementById('toast-container'); const el=document.createElement('div'); el.className='toast'; el.textContent=msg; c.appendChild(el); setTimeout(()=>{ el.remove(); }, 2200); }
+  function showToast(msg){ const c=document.getElementById('toast-container'); const el=document.createElement('div'); el.className='toast'; el.textContent=msg; c.appendChild(el); setTimeout(()=>{ el.remove(); }, 2000); }
 
   // ===== Estado
   const STORAGE_KEY='rankapp_state_v1';
@@ -176,36 +183,47 @@
   ];
   function addXP(a){xp+=a;state.xpTotal=xp}
   function pointsForRank(letter){
-    switch(letter){
-      case 'D': return 1; case 'C': return 2; case 'B': return 3; case 'A': return 4; case 'S': return 5; default: return 0;
-    }
+    switch(letter){ case 'D': return 1; case 'C': return 2; case 'B': return 3; case 'A': return 4; case 'S': return 5; default: return 0; }
   }
+
+  // ===== Atributos: atualização incremental
+  function refreshAttrHeader(){ const pts=document.getElementById('attr-pts'); if(pts) pts.textContent = state.attributePoints||0 }
+  function refreshAttrButtons(){
+    const cap=10; const pts=state.attributePoints||0;
+    ['str','agi','vit','dis','foc'].forEach(key=>{
+      const row=document.querySelector(`[data-attr-row="${key}"]`);
+      if(!row) return;
+      const val=state.attributes?.[key]||0;
+      const plus=row.querySelector('[data-inc]');
+      const minus=row.querySelector('[data-dec]');
+      const valueEl=row.querySelector('[data-val]');
+      if(valueEl) valueEl.textContent = val;
+      if(plus){ plus.disabled = (pts<=0 || val>=cap); }
+      if(minus){ minus.disabled = (val<=0); }
+    });
+  }
+
   function updateUI(){
     let currentRank=ranks[0],nextRank=ranks[1]||ranks[0];
     for(let i=0;i<ranks.length;i++){ if(xp>=ranks[i].minXp){ currentRank=ranks[i]; nextRank=ranks[i+1]||ranks[i]; } }
 
     const rankEl=document.getElementById('rank-text');
-    rankEl.innerText=currentRank.name;
-    rankEl.style.color=currentRank.color;
-    rankEl.style.textShadow=`0 0 15px ${currentRank.color}`;
+    rankEl.innerText=currentRank.name; rankEl.style.color=currentRank.color; rankEl.style.textShadow=`0 0 15px ${currentRank.color}`;
 
-    const playerEl=document.getElementById('player-name');
-    playerEl.textContent=`${getTitleByRank(currentRank.name)}`;
+    const playerEl=document.getElementById('player-name'); playerEl.textContent=`${getTitleByRank(currentRank.name)}`;
 
     const need=Math.max(1,nextRank.minXp-currentRank.minXp), have=xp-currentRank.minXp;
     let pct=(have/need)*100; if(currentRank.name==='S') pct=100;
-    const fill=document.getElementById('xp-fill');
-    fill.style.width=pct+'%'; fill.style.backgroundColor=currentRank.color;
+    const fill=document.getElementById('xp-fill'); fill.style.width=pct+'%'; fill.style.backgroundColor=currentRank.color;
 
-    const specialMsg=document.getElementById('rank-special-msg');
-    if(currentRank.name==='S'){specialMsg.textContent='Poucos chegam até aqui.'; specialMsg.hidden=false} else {specialMsg.hidden=true}
+    const specialMsg=document.getElementById('rank-special-msg'); specialMsg.hidden = currentRank.name!=='S'; if(!specialMsg.hidden) specialMsg.textContent='Poucos chegam até aqui.';
 
     document.getElementById('xp-text').innerText=(currentRank.name==='S')?`XP: ${xp} (máximo)`: `XP: ${xp} / ${nextRank.minXp}`;
     document.getElementById('streak-pill').textContent='🔥 '+(state.streakDays||0);
 
     highlightCurrentRank(currentRank.name);
 
-    // >>> Award de pontos quando muda de rank e é novo pico
+    // award de pontos
     const prevRankName = state.currentRankName || 'E';
     const order=['E','D','C','B','A','S'];
     if(currentRank.name !== prevRankName){
@@ -216,7 +234,8 @@
         state.attributePoints = (state.attributePoints||0) + award;
         state.highestRankAchieved = currentRank.name;
         showToast(`+${award} ponto(s) de atributo por atingir o Rank ${currentRank.name}`);
-        renderCharacters();
+        refreshAttrHeader();
+        refreshAttrButtons();
       }
       state.currentRankName = currentRank.name;
     }
@@ -233,16 +252,9 @@
     wrap.querySelectorAll('.mission-toggle input').forEach(cb=>{
       cb.addEventListener('change',e=>{
         const key=e.target.dataset.key, checked=e.target.checked;
-        ensureDefaults();
-        const attrs = state.attributes || {};
+        ensureDefaults(); const attrs = state.attributes || {};
         state.daily.items[key]=checked;
-
-        if(checked){
-          addXP(DAILY_XP);
-          if(key==='train'){ addXP(2*(attrs.str||0)); }
-          if(key==='cardio'){ addXP(2*(attrs.agi||0)); }
-        }
-
+        if(checked){ addXP(DAILY_XP); if(key==='train'){ addXP(2*(attrs.str||0)); } if(key==='cardio'){ addXP(2*(attrs.agi||0)); } }
         if(key==='train'){
           if(checked && !state.daily.credited.train){ state.week.counts.train++; state.daily.credited.train=true }
           if(!checked && state.daily.credited.train){ state.week.counts.train=Math.max(0,state.week.counts.train-1); state.daily.credited.train=false }
@@ -251,57 +263,24 @@
           if(checked && !state.daily.credited.cardio){ state.week.counts.cardio++; state.daily.credited.cardio=true }
           if(!checked && state.daily.credited.cardio){ state.week.counts.cardio=Math.max(0,state.week.counts.cardio-1); state.daily.credited.cardio=false }
         }
-
         const allDone = state.daily.items.train && state.daily.items.cardio && state.daily.items.sleep;
-        if(allDone && !state.daily.allBonusGiven){
-          const dis = (attrs.dis||0);
-          addXP(DAILY_BONUS + dis);
-          state.daily.allBonusGiven=true;
-          state.streakDays=(state.streakDays||0)+1;
-        }
-
-        checkWeeklyAchievements();
-        renderWeekly();
-        updateUI();
+        if(allDone && !state.daily.allBonusGiven){ const dis=(attrs.dis||0); addXP(DAILY_BONUS + dis); state.daily.allBonusGiven=true; state.streakDays=(state.streakDays||0)+1 }
+        checkWeeklyAchievements(); renderWeekly(); updateUI();
       })
     })
   }
-  function missionToggle(key,label,checked){
-    return `<label class=\"mission-toggle\"><input type=\"checkbox\" data-key=\"${key}\" ${checked?'checked':''}/><span class=\"box\"></span><span class=\"text\">${label}</span><span class=\"xp-pill\">+${DAILY_XP} XP</span></label>`
-  }
+  function missionToggle(key,label,checked){ return `<label class="mission-toggle"><input type="checkbox" data-key="${key}" ${checked?'checked':''}/><span class="box"></span><span class="text">${label}</span><span class="xp-pill">+${DAILY_XP} XP</span></label>` }
 
   function renderWeekly(){
-    const wrap=document.getElementById('weekly-list');
-    const c=state.week.counts,a=state.week.achieved;
+    const wrap=document.getElementById('weekly-list'); const c=state.week.counts,a=state.week.achieved;
     wrap.innerHTML=`${weeklyProgress('Treinar 4x',c.train,4,a.train4,'w-train')}${weeklyProgress('4x cardio 20 min',c.cardio,4,a.cardio4,'w-cardio')}${weeklyCalories('700 calorias queimadas',c.calories,700,a.cal700)}`;
-    const add=wrap.querySelector('[data-action=\"add-cal-100\"]'); if(add) add.addEventListener('click',()=>adjustCalories(100));
-    const sub=wrap.querySelector('[data-action=\"sub-cal-100\"]'); if(sub) sub.addEventListener('click',()=>adjustCalories(-100));
+    const add=wrap.querySelector('[data-action="add-cal-100"]'); if(add) add.addEventListener('click',()=>adjustCalories(100));
+    const sub=wrap.querySelector('[data-action="sub-cal-100"]'); if(sub) sub.addEventListener('click',()=>adjustCalories(-100));
   }
-  function weeklyProgress(title,value,target,achieved,id){
-    const pct=Math.min(100,Math.round((value/target)*100));
-    return `<div class=\"weekly-item ${achieved?'done':''}\" id=\"${id}\"><div class=\"w-title\">${title}</div><div class=\"w-bar\"><div class=\"w-fill\" style=\"width:${pct}%\"></div></div><div class=\"w-meta\">${value} / ${target}</div>${achieved?'<div class=\"w-badge\">Concluída ✓</div>':''}</div>`
-  }
-  function weeklyCalories(title,value,target,achieved){
-    const pct=Math.min(100,Math.round((value/target)*100));
-    return `<div class=\"weekly-item ${achieved?'done':''}\"><div class=\"w-title\">${title}</div><div class=\"w-bar\"><div class=\"w-fill\" style=\"width:${pct}%\"></div></div><div class=\"w-meta\">${value} / ${target} kcal</div><div class=\"w-actions\"><button class=\"mini-btn\" data-action=\"sub-cal-100\">-100</button><button class=\"mini-btn\" data-action=\"add-cal-100\">+100</button></div>${achieved?'<div class=\"w-badge\">Concluída ✓</div>':''}</div>`
-  }
-  function adjustCalories(delta){
-    ensureDefaults();
-    const vit = state.attributes?.vit || 0;
-    const mult = 1 + 0.05 * vit;
-    const effective = Math.round(delta * mult);
-    state.week.counts.calories = Math.max(0,(state.week.counts.calories||0)+effective);
-    checkWeeklyAchievements();
-    renderWeekly();
-    updateUI();
-  }
-  function checkWeeklyAchievements(){
-    ensureDefaults();
-    const foc = state.attributes?.foc || 0;
-    if(state.week.counts.train>=4 && !state.week.achieved.train4){ addXP(WEEKLY_BONUS + 2*foc); state.week.achieved.train4=true }
-    if(state.week.counts.cardio>=4 && !state.week.achieved.cardio4){ addXP(WEEKLY_BONUS + 2*foc); state.week.achieved.cardio4=true }
-    if(state.week.counts.calories>=700 && !state.week.achieved.cal700){ addXP(WEEKLY_BONUS + 2*foc); state.week.achieved.cal700=true }
-  }
+  function weeklyProgress(title,value,target,achieved,id){ const pct=Math.min(100,Math.round((value/target)*100)); return `<div class="weekly-item ${achieved?'done':''}" id="${id}"><div class="w-title">${title}</div><div class="w-bar"><div class="w-fill" style="width:${pct}%"></div></div><div class="w-meta">${value} / ${target}</div>${achieved?'<div class="w-badge">Concluída ✓</div>':''}</div>` }
+  function weeklyCalories(title,value,target,achieved){ const pct=Math.min(100,Math.round((value/target)*100)); return `<div class="weekly-item ${achieved?'done':''}"><div class="w-title">${title}</div><div class="w-bar"><div class="w-fill" style="width:${pct}%"></div></div><div class="w-meta">${value} / ${target} kcal</div><div class="w-actions"><button class="mini-btn" data-action="sub-cal-100">-100</button><button class="mini-btn" data-action="add-cal-100">+100</button></div>${achieved?'<div class="w-badge">Concluída ✓</div>':''}</div>` }
+  function adjustCalories(delta){ ensureDefaults(); const vit=state.attributes?.vit||0; const mult=1 + 0.05*vit; const effective=Math.round(delta*mult); state.week.counts.calories=Math.max(0,(state.week.counts.calories||0)+effective); checkWeeklyAchievements(); renderWeekly(); updateUI(); }
+  function checkWeeklyAchievements(){ ensureDefaults(); const foc=state.attributes?.foc||0; if(state.week.counts.train>=4 && !state.week.achieved.train4){ addXP(WEEKLY_BONUS + 2*foc); state.week.achieved.train4=true } if(state.week.counts.cardio>=4 && !state.week.achieved.cardio4){ addXP(WEEKLY_BONUS + 2*foc); state.week.achieved.cardio4=true } if(state.week.counts.calories>=700 && !state.week.achieved.cal700){ addXP(WEEKLY_BONUS + 2*foc); state.week.achieved.cal700=true } }
 
   // ===== Ranks
   const rankColors={'S':'#FFD700','A':'#FF2424','B':'#9C27B0','C':'#2196F3','D':'#4CAF50','E':'#9e9e9e'};
@@ -313,151 +292,55 @@
     {rank:'D',title:'Consistente',subtitle:'Comprometido • Em ascensão'},
     {rank:'E',title:'Recruta',subtitle:'Início da jornada • Despertado recentemente'}
   ];
-  function renderRankCards(){
-    const wrap=document.getElementById('rank-cards');
-    wrap.innerHTML=rankCatalog.map(it=>{
-      const color=rankColors[it.rank]||'#00d4ff';
-      return `<article class=\"rank-card\" data-rank=\"${it.rank}\" style=\"--bar-color:${color}\"><div class=\"info\"><div class=\"name\">${it.title}</div><div class=\"subtitle\">${it.subtitle}</div></div><div class=\"tag\">${it.rank}</div></article>`
-    }).join('')
-  }
+  function renderRankCards(){ const wrap=document.getElementById('rank-cards'); wrap.innerHTML=rankCatalog.map(it=>{ const color=rankColors[it.rank]||'#00d4ff'; return `<article class="rank-card" data-rank="${it.rank}" style="--bar-color:${color}"><div class="info"><div class="name">${it.title}</div><div class="subtitle">${it.subtitle}</div></div><div class="tag">${it.rank}</div></article>` }).join('') }
   function highlightCurrentRank(current){ document.querySelectorAll('.rank-card').forEach(c=>{ c.classList.toggle('current-rank',c.getAttribute('data-rank')===current) }) }
   function getTitleByRank(rankLetter){ const found=rankCatalog.find(r=>r.rank===rankLetter); return found?found.title:'' }
 
-  // ===== Personagens (apenas imagens, sem textos)
-  const characters=[
-    {id:'man', name:'', src:'Man.png'},
-    {id:'woman', name:'', src:'Woman.png'}
-  ];
+  // ===== Personagens (imagens, sem textos)
+  const characters=[ {id:'man', src:'Man.png'}, {id:'woman', src:'Woman.png'} ];
 
   function renderCharacters(){
-    ensureDefaults();
-    const wrap=document.getElementById('character-grid');
-    const hint=document.getElementById('char-hint');
-    const selId = state.selectedCharacter;
-
-    if(!selId){
-      hint.textContent = 'Escolha seu personagem. A escolha é permanente.';
-      wrap.className = 'character-grid';
-      wrap.innerHTML = characters.map(c=>`
-        <div class=\"char-card\" data-id=\"${c.id}\">
-          <div class=\"char-img-wrap\"><img class=\"char-img\" src=\"${c.src}\" alt=\"\"></div>
-          <div class=\"char-choose\"><button class=\"mini-btn\" data-action=\"choose\">Escolher</button></div>
-        </div>`).join('');
-      wrap.querySelectorAll('.char-card .mini-btn').forEach(btn=>{
-        btn.addEventListener('click',e=>{
-          const card=e.currentTarget.closest('.char-card');
-          const id=card?.getAttribute('data-id');
-          if(!id) return;
-          state.selectedCharacter=id; // TRAVA PERMANENTE
-          saveState(state);
-          renderCharacters();
-          if(navigator.vibrate) navigator.vibrate(10);
-        })
-      });
-      return;
-    }
-
-    const c = characters.find(x=>x.id===selId) || {src:''};
-    hint.textContent = 'Seu personagem está definido. Distribua seus pontos de atributo.';
-    wrap.className = '';
-    const attrs = state.attributes || {str:0,agi:0,vit:0,dis:0,foc:0};
-
+    const y=window.scrollY; // preserva scroll
+    ensureDefaults(); const wrap=document.getElementById('character-grid'); const hint=document.getElementById('char-hint'); const selId=state.selectedCharacter;
+    if(!selId){ hint.textContent='Escolha seu personagem. A escolha é permanente.'; wrap.className='character-grid'; wrap.innerHTML = characters.map(c=>`<div class="char-card" data-id="${c.id}"><div class="char-img-wrap"><img class="char-img" src="${c.src}" alt=""></div><div class="char-choose"><button class="mini-btn" data-action="choose">Escolher</button></div></div>`).join(''); wrap.querySelectorAll('.char-card .mini-btn').forEach(btn=>{ btn.addEventListener('click',e=>{ const card=e.currentTarget.closest('.char-card'); const id=card?.getAttribute('data-id'); if(!id) return; state.selectedCharacter=id; saveState(state); renderCharacters(); if(navigator.vibrate) navigator.vibrate(10); }) }); window.scrollTo({top:y}); return; }
+    const c = characters.find(x=>x.id===selId) || {src:''}; hint.textContent='Seu personagem está definido. Distribua seus pontos de atributo.'; wrap.className='';
+    const attrs=state.attributes || {str:0,agi:0,vit:0,dis:0,foc:0};
     wrap.innerHTML = `
-      <div class=\"selected-char\">
-        <div class=\"portrait\"><img src=\"${c.src}\" alt=\"\"></div>
-        <div class=\"meta\"><div class=\"lock\">\uD83D\uDD12 Escolha permanente</div></div>
-      </div>
-      <div class=\"attr-panel\">
-        <div class=\"attr-head\">
-          <div><strong>Atributos</strong></div>
-          <div class=\"attr-points\">Pontos disponíveis: <span id=\"attr-pts\">${state.attributePoints||0}</span></div>
-        </div>
-        <div class=\"attr-list\">
+      <div class="selected-char"><div class="portrait"><img src="${c.src}" alt=""></div><div class="meta"><div class="lock">🔒 Escolha permanente</div></div></div>
+      <div class="attr-panel">
+        <div class="attr-head"><div><strong>Atributos</strong></div><div class="attr-points">Pontos disponíveis: <span id="attr-pts">${state.attributePoints||0}</span></div></div>
+        <div class="attr-list" id="attr-list">
           ${attrRow('Força','str',attrs.str)}
           ${attrRow('Agilidade','agi',attrs.agi)}
           ${attrRow('Vigor','vit',attrs.vit)}
           ${attrRow('Disciplina','dis',attrs.dis)}
           ${attrRow('Foco','foc',attrs.foc)}
         </div>
-      </div>
-    `;
-
-    wrap.querySelectorAll('[data-inc]').forEach(btn=>{ btn.addEventListener('click',e=>{ const key=e.currentTarget.getAttribute('data-inc'); incAttr(key); }) })
-    wrap.querySelectorAll('[data-dec]').forEach(btn=>{ btn.addEventListener('click',e=>{ const key=e.currentTarget.getAttribute('data-dec'); decAttr(key); }) })
+      </div>`;
+    document.querySelectorAll('[data-inc]').forEach(b=> b.addEventListener('click',e=>{ const key=e.currentTarget.getAttribute('data-inc'); incAttr(key); }));
+    document.querySelectorAll('[data-dec]').forEach(b=> b.addEventListener('click',e=>{ const key=e.currentTarget.getAttribute('data-dec'); decAttr(key); }));
+    window.scrollTo({top:y});
   }
 
   function attrRow(label,key,value){
-    const incDisabled = (state.attributePoints||0)<=0 || (value>=10);
-    const decDisabled = value<=0;
-    return `<div class=\"attr-row\"><div class=\"attr-name\">${label}</div><div class=\"attr-value\">${value}</div><div class=\"attr-actions\"><button class=\"mini-btn\" data-dec=\"${key}\" ${decDisabled?'disabled':''}>-</button><button class=\"mini-btn\" data-inc=\"${key}\" ${incDisabled?'disabled':''}>+</button></div></div>`
+    return `<div class="attr-row" data-attr-row="${key}"><div class="attr-name">${label}</div><div class="attr-value" data-val>${value}</div><div class="attr-actions"><button class="mini-btn" data-dec="${key}">-</button><button class="mini-btn" data-inc="${key}">+</button></div></div>`
   }
-  function incAttr(key){
-    ensureDefaults();
-    if(!state.attributePoints) return;
-    const cap=10;
-    const cur=state.attributes[key]||0;
-    if(cur>=cap) return;
-    state.attributes[key]=cur+1;
-    state.attributePoints-=1;
-    saveState(state);
-    renderCharacters();
-  }
-  function decAttr(key){
-    ensureDefaults();
-    const cur=state.attributes[key]||0;
-    if(cur<=0) return;
-    state.attributes[key]=cur-1;
-    state.attributePoints=(state.attributePoints||0)+1;
-    saveState(state);
-    renderCharacters();
-  }
+  function incAttr(key){ ensureDefaults(); const cap=10; const cur=state.attributes[key]||0; if(!state.attributePoints || cur>=cap) return; state.attributes[key]=cur+1; state.attributePoints-=1; saveState(state); refreshAttrHeader(); refreshAttrButtons(); }
+  function decAttr(key){ ensureDefaults(); const cur=state.attributes[key]||0; if(cur<=0) return; state.attributes[key]=cur-1; state.attributePoints=(state.attributePoints||0)+1; saveState(state); refreshAttrHeader(); refreshAttrButtons(); }
 
   // ===== Reset All
-  function resetAll(){
-    try{ localStorage.removeItem(STORAGE_KEY);}catch(e){}
-    state = loadState();
-    xp = state.xpTotal || 0;
-    ensureRollover(); ensureDefaults();
-    renderRankCards(); renderDaily(); renderWeekly(); renderCharacters(); updateUI();
-    showToast('Estado resetado');
-  }
+  function resetAll(){ const y=window.scrollY; try{ localStorage.removeItem(STORAGE_KEY);}catch(e){} state=loadState(); xp=state.xpTotal||0; ensureRollover(); ensureDefaults(); renderRankCards(); renderDaily(); renderWeekly(); renderCharacters(); updateUI(); showToast('Estado resetado'); window.scrollTo({top:y}); }
 
   // ===== Test: mudar rank manualmente
   function getCurrentRankIndex(){ let idx=0; for(let i=0;i<ranks.length;i++){ if(xp>=ranks[i].minXp) idx=i } return idx }
-  function setRankByIndex(newIdx){ newIdx=Math.max(0,Math.min(ranks.length-1,newIdx)); xp=ranks[newIdx].minXp; state.xpTotal=xp; saveState(state); updateUI() }
-  function setupRankTestControls(){
-    const up=document.getElementById('rank-up'); const down=document.getElementById('rank-down'); const reset=document.getElementById('reset-all');
-    if(up) up.addEventListener('click',()=>{ const idx=getCurrentRankIndex(); setRankByIndex(idx+1); if(navigator.vibrate) navigator.vibrate(10) });
-    if(down) down.addEventListener('click',()=>{ const idx=getCurrentRankIndex(); setRankByIndex(idx-1); if(navigator.vibrate) navigator.vibrate(10) });
-    if(reset) reset.addEventListener('click',()=>{ resetAll(); if(navigator.vibrate) navigator.vibrate(10) });
-  }
+  function setRankByIndex(newIdx){ const y=window.scrollY; newIdx=Math.max(0,Math.min(ranks.length-1,newIdx)); xp=ranks[newIdx].minXp; state.xpTotal=xp; saveState(state); updateUI(); window.scrollTo({top:y}); }
+  function setupRankTestControls(){ const up=document.getElementById('rank-up'); const down=document.getElementById('rank-down'); const reset=document.getElementById('reset-all'); if(up) up.addEventListener('click',()=>{ const idx=getCurrentRankIndex(); setRankByIndex(idx+1); if(navigator.vibrate) navigator.vibrate(10) }); if(down) down.addEventListener('click',()=>{ const idx=getCurrentRankIndex(); setRankByIndex(idx-1); if(navigator.vibrate) navigator.vibrate(10) }); if(reset) reset.addEventListener('click',()=>{ resetAll(); if(navigator.vibrate) navigator.vibrate(10) }); }
 
   // ===== Tabs
-  function setupTabs(){
-    const tabs=document.querySelectorAll('.tabbar .tab');
-    const viewRank=document.getElementById('view-rank');
-    const viewM=document.getElementById('view-missions');
-    const viewC=document.getElementById('view-character');
-    function activate(name){
-      tabs.forEach(t=>{ const on=t.dataset.tab===name; t.classList.toggle('active',on); t.setAttribute('aria-selected',on?'true':'false') });
-      const map={rank:viewRank,missions:viewM,character:viewC};
-      Object.entries(map).forEach(([k,el])=>{ if(name===k){ el.classList.add('active'); el.removeAttribute('aria-hidden') } else { el.classList.remove('active'); el.setAttribute('aria-hidden','true') } });
-      state.lastTab=name; saveState(state)
-    }
-    tabs.forEach(t=> t.addEventListener('click',()=>{ activate(t.dataset.tab); if(navigator.vibrate) navigator.vibrate(10) }));
-    activate(state.lastTab==='missions'?'missions':(state.lastTab==='character'?'character':'rank'))
-  }
+  function setupTabs(){ const tabs=document.querySelectorAll('.tabbar .tab'); const viewRank=document.getElementById('view-rank'); const viewM=document.getElementById('view-missions'); const viewC=document.getElementById('view-character'); function activate(name){ tabs.forEach(t=>{ const on=t.dataset.tab===name; t.classList.toggle('active',on); t.setAttribute('aria-selected',on?'true':'false') }); const map={rank:viewRank,missions:viewM,character:viewC}; Object.entries(map).forEach(([k,el])=>{ if(name===k){ el.classList.add('active'); el.removeAttribute('aria-hidden') } else { el.classList.remove('active'); el.setAttribute('aria-hidden','true') } }); state.lastTab=name; saveState(state) } tabs.forEach(t=> t.addEventListener('click',()=>{ activate(t.dataset.tab); if(navigator.vibrate) navigator.vibrate(10) })); activate(state.lastTab==='missions'?'missions':(state.lastTab==='character'?'character':'rank')) }
 
   // ===== Boot
-  ensureRollover();
-  ensureDefaults();
-  renderRankCards();
-  renderDaily();
-  renderWeekly();
-  renderCharacters();
-  updateUI();
-  setupTabs();
-  setupRankTestControls();
+  ensureRollover(); ensureDefaults(); renderRankCards(); renderDaily(); renderWeekly(); renderCharacters(); updateUI(); setupTabs(); setupRankTestControls();
 
   // SW
   if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('./service-worker.js').catch(console.error) }) }
