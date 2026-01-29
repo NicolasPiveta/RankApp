@@ -28,36 +28,39 @@
     .char-choose .mini-btn { padding: 6px 10px; }
 
     /* Personagem selecionado (modo travado) */
-    .selected-char { display:flex; gap:16px; align-items:center; background: rgba(255,255,255,0.03); border:1px solid rgba(0,212,255,0.35); border-radius:14px; padding:12px; margin-bottom:12px; }
-    .selected-char .portrait { width: 140px; max-width: 45vw; border-radius: 12px; overflow: hidden; }
+    .selected-char { display:flex; gap:12px; align-items:center; background: rgba(255,255,255,0.03); border:1px solid rgba(0,212,255,0.35); border-radius:12px; padding:10px; margin-bottom:10px; }
+    .selected-char .portrait { width: 120px; max-width: 40vw; border-radius: 10px; overflow: hidden; }
     .selected-char .portrait img { width:100%; height:auto; display:block; }
     .selected-char .meta { flex:1; }
-    .selected-char .meta .title { display:none; } /* remove texto do título do personagem */
-    .selected-char .meta .lock { font-size:0.9rem; opacity:.85; }
+    .selected-char .meta .lock { font-size:0.85rem; opacity:.85; }
 
-    /* Atributos */
-    .attr-panel { background: rgba(255,255,255,0.03); border:1px solid rgba(0,212,255,0.35); border-radius:14px; padding:12px; }
-    .attr-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:12px; }
+    /* Atributos - COMPACT */
+    .attr-panel { background: rgba(255,255,255,0.03); border:1px solid rgba(0,212,255,0.35); border-radius:12px; padding:10px; font-size: 0.95rem; }
+    .attr-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; gap:8px; }
     .attr-points { font-weight:600; }
-    .attr-list { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
-    .attr-row { display:flex; align-items:center; justify-content:space-between; gap:10px; background: rgba(0,212,255,0.06); border:1px solid rgba(0,212,255,0.25); border-radius:10px; padding:8px 10px; min-height:48px; }
-    .attr-name { font-weight:600; font-size: 1rem; }
-    .attr-value { font-family: monospace; min-width: 18px; text-align:center; font-size: 0.95rem; }
+    .attr-list { display:grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap:8px; }
+    .attr-row { display:flex; align-items:center; justify-content:space-between; gap:8px; background: rgba(0,212,255,0.06); border:1px solid rgba(0,212,255,0.25); border-radius:10px; padding:6px 8px; min-height:42px; }
+    .attr-name { font-weight:600; font-size: 0.95rem; line-height:1.1; word-break: break-word; hyphens: auto; }
+    .attr-value { font-family: monospace; min-width: 16px; text-align:center; font-size: 0.9rem; }
     .attr-actions { display:flex; gap:6px; }
-    .attr-actions .mini-btn { padding: 4px 8px; font-size: 0.95rem; }
+    .attr-actions .mini-btn { padding: 2px 8px; font-size: 0.85rem; line-height:1.1; }
 
-    /* força 2 colunas SEMPRE; micro-ajustes para telas estreitas */
-    .attr-panel { overflow-x: auto; }
-    @media (max-width: 420px){
-      .attr-name { font-size: 0.92rem; }
-      .attr-actions .mini-btn { padding: 3px 7px; font-size: 0.9rem; }
-      .attr-row { padding:6px 8px; gap:8px; }
-      .attr-head { font-size: 0.95rem; }
+    /* força 2 colunas SEMPRE; reduzir riscos de scroll */
+    .attr-panel { overflow-x: hidden; }
+
+    /* micro-ajustes extras para telas realmente estreitas */
+    @media (max-width: 400px){
+      .selected-char .portrait { width: 110px; }
+      .attr-row { padding:5px 6px; gap:6px; min-height:38px; }
+      .attr-actions .mini-btn { padding: 2px 6px; font-size: 0.82rem; }
+      .attr-name { font-size: 0.9rem; }
+      .attr-head { font-size: 0.92rem; }
     }
-    @media (max-width: 360px){
-      .attr-name { font-size: 0.88rem; }
-      .attr-actions .mini-btn { padding: 3px 6px; font-size: 0.85rem; }
-      .attr-value { font-size: 0.9rem; }
+    @media (max-width: 340px){
+      .selected-char .portrait { width: 100px; }
+      .attr-name { font-size: 0.86rem; }
+      .attr-actions .mini-btn { padding: 1px 6px; font-size: 0.8rem; }
+      .attr-value { font-size: 0.85rem; min-width: 14px; }
     }
   </style>
 </head>
@@ -320,7 +323,7 @@
   function highlightCurrentRank(current){ document.querySelectorAll('.rank-card').forEach(c=>{ c.classList.toggle('current-rank',c.getAttribute('data-rank')===current) }) }
   function getTitleByRank(rankLetter){ const found=rankCatalog.find(r=>r.rank===rankLetter); return found?found.title:'' }
 
-  // ===== Personagens (PNG transparente)
+  // ===== Personagens (apenas imagens, sem textos)
   const characters=[
     {id:'man', name:'', src:'Man.png'},
     {id:'woman', name:'', src:'Woman.png'}
@@ -354,7 +357,6 @@
       return;
     }
 
-    // Modo travado (após escolher)
     const c = characters.find(x=>x.id===selId) || {src:''};
     hint.textContent = 'Seu personagem está definido. Distribua seus pontos de atributo.';
     wrap.className = '';
@@ -363,9 +365,7 @@
     wrap.innerHTML = `
       <div class=\"selected-char\">
         <div class=\"portrait\"><img src=\"${c.src}\" alt=\"\"></div>
-        <div class=\"meta\">
-          <div class=\"lock\">🔒 Escolha permanente</div>
-        </div>
+        <div class=\"meta\"><div class=\"lock\">\uD83D\uDD12 Escolha permanente</div></div>
       </div>
       <div class=\"attr-panel\">
         <div class=\"attr-head\">
@@ -412,7 +412,7 @@
     renderCharacters();
   }
 
-  // ===== Reset All (botão ao lado do Rank +/-)
+  // ===== Reset All
   function resetAll(){
     try{ localStorage.removeItem(STORAGE_KEY);}catch(e){}
     state = loadState();
