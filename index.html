@@ -1,147 +1,458 @@
-<!DOCTYPE html> 
-<html lang="pt-br"> 
-<head> 
- <meta charset="UTF-8" /> 
- <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" /> 
- <meta name="apple-mobile-web-app-capable" content="yes" /> 
- <meta name="apple-mobile-web-app-title" content="RankApp" /> 
- <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" /> 
- <meta name="theme-color" content="#00d4ff" /> 
- <title>RankApp</title> 
- <link rel="manifest" href="manifest.json" /> 
- <link rel="apple-touch-icon" href="icons/icon-192.png" /> 
- <link rel="stylesheet" href="styles.css" /> 
- <style> 
- .rank-special-msg{margin-top:6px;font-size:0.85rem;opacity:.85;color:#FFD700;text-align:center;animation:glowPulse 3s ease-in-out infinite} 
- @keyframes glowPulse{0%,100%{opacity:.7}50%{opacity:1}} 
- .rank-test-controls{display:flex;gap:8px;justify-content:center;margin:10px 0 0;opacity:.9} 
- /* PERSONAGEM */ 
- .character-view { padding: 12px; } 
- .character-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; } 
- .char-card { position: relative; background: rgba(255,255,255,0.03); border: 1px solid rgba(0,212,255,0.35); border-radius: 14px; padding: 10px; cursor: pointer; transition: transform .1s ease, box-shadow .2s ease; } 
- .char-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0, 212, 255, 0.15); } 
- .char-card.selected { outline: 2px solid #00d4ff; box-shadow: 0 0 0 4px rgba(0,212,255,0.18) inset; } 
- .char-img-wrap { display:flex; align-items:center; justify-content:center; min-height: 220px; background: radial-gradient(140px 70px at 50% 60%, rgba(0,212,255,.08), transparent); border-radius: 10px; overflow: hidden; } 
- .char-img { width: 100%; height: auto; object-fit: contain; } 
- .char-name { margin-top: 6px; text-align:center; font-size: .95rem; opacity: .9; } 
- .char-choose { margin-top: 6px; display: flex; justify-content: center; } 
- .char-choose .mini-btn { padding: 6px 10px; } 
- </style> 
-</head> 
-<body> 
- <!-- VIEW: RANK (Status + Relatório) --> 
- <section id="view-rank" class="view active"> 
- <div class="player-status"> 
- <h2>[ RANK DO JOGADOR ]</h2> 
- <div id="rank-text" class="rank-display">E</div> 
- <div id="player-name" class="player-name" aria-live="polite"></div> 
- <div id="rank-special-msg" class="rank-special-msg" hidden></div> 
- <div class="xp-bar-container"> 
- <div id="xp-fill" class="xp-bar-fill"></div> 
- </div> 
- <p id="xp-text" class="xp-text">XP: 0 / 100</p> 
- </div> 
- <section id="rank-report" class="rank-report"> 
- <h2>[ SISTEMAS DE RANKS ]</h2> 
- <div id="rank-cards"></div> 
- <div id="rank-test-controls" class="rank-test-controls"> 
- <button id="rank-down" class="mini-btn">⬇️ Rank -</button> 
- <button id="rank-up" class="mini-btn">⬆️ Rank +</button> 
- </div> 
- </section> 
- </section> 
- <!-- VIEW: MISSÕES --> 
- <section id="view-missions" class="view" aria-hidden="true"> 
- <section id="missions" class="missions"> 
- <div class="missions-header"> 
- <h2>[ MISSÕES ]</h2> 
- <div id="streak-pill" class="streak-pill" title="Dias seguidos com diárias completas">🔥 0</div> 
- </div> 
- <div class="missions-group"> 
- <h3>Diárias</h3> 
- <div id="daily-list" class="mission-list"></div> 
- <small class="hint">Bônus diário: +10 XP ao completar todas as diárias do dia.</small> 
- </div> 
- <div class="missions-group"> 
- <h3>Semanais</h3> 
- <div id="weekly-list" class="mission-list weekly"></div> 
- <small class="hint">Cada meta semanal concluída rende +40 XP.</small> 
- </div> 
- </section> 
- </section> 
- <!-- VIEW: PERSONAGEM --> 
- <section id="view-character" class="view" aria-hidden="true"> 
- <section class="character-view"> 
- <h2>[ PERSONAGEM ]</h2> 
- <p class="hint">Escolha seu personagem para representar seu progresso.</p> 
- <div id="character-grid" class="character-grid"></div> 
- </section> 
- </section> 
- <!-- TAB BAR --> 
- <nav class="tabbar" role="tablist" aria-label="Navegação principal"> 
- <button class="tab active" role="tab" aria-selected="true" data-tab="rank">🏆 <span>Rank</span></button> 
- <button class="tab" role="tab" aria-selected="false" data-tab="missions">✅ <span>Missões</span></button> 
- <button class="tab" role="tab" aria-selected="false" data-tab="character">👤 <span>Personagem</span></button> 
- </nav> 
- <script> 
- // ===== Utils 
- function pad(n){return n<10?'0'+n:''+n} 
- function todayStr(){const d=new Date();return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())} 
- function isoWeekId(date=new Date()){const d=new Date(Date.UTC(date.getFullYear(),date.getMonth(),date.getDate()));const dayNum=d.getUTCDay()||7;d.setUTCDate(d.getUTCDate()+4-dayNum);const yearStart=new Date(Date.UTC(d.getUTCFullYear(),0,1));const weekNo=Math.ceil((((d-yearStart)/86400000)+1)/7);return d.getUTCFullYear()+"-W"+pad(weekNo)} 
- // ===== Estado 
- const STORAGE_KEY='rankapp_state_v1'; 
- function loadState(){try{const raw=localStorage.getItem(STORAGE_KEY);if(!raw)throw 0;return JSON.parse(raw)}catch(e){return{xpTotal:0,daily:{date:todayStr(),items:{train:false,cardio:false,sleep:false},credited:{train:false,cardio:false},allBonusGiven:false},week:{id:isoWeekId(),counts:{train:0,cardio:0,calories:0},achieved:{train4:false,cardio4:false,cal700:false}},streakDays:0,lastTab:'rank',selectedCharacter:null}}} 
- function saveState(s){localStorage.setItem(STORAGE_KEY,JSON.stringify(s))} 
- let state=loadState(); 
- function ensureRollover(){const today=todayStr();if(state.daily?.date!==today){state.daily={date:today,items:{train:false,cardio:false,sleep:false},credited:{train:false,cardio:false},allBonusGiven:false}}const wid=isoWeekId();if(state.week?.id!==wid){state.week={id:wid,counts:{train:0,cardio:0,calories:0},achieved:{train4:false,cardio4:false,cal700:false}}}} 
- // ===== XP / Rank 
- let xp=state.xpTotal||0; 
- const ranks=[{name:'E',minXp:0,color:'#9e9e9e'},{name:'D',minXp:100,color:'#4CAF50'},{name:'C',minXp:300,color:'#2196F3'},{name:'B',minXp:600,color:'#9C27B0'},{name:'A',minXp:1000,color:'#FF2424'},{name:'S',minXp:2000,color:'#FFD700'}]; 
- function addXP(a){xp+=a;state.xpTotal=xp} 
- function updateUI(){let currentRank=ranks[0],nextRank=ranks[1]||ranks[0];for(let i=0;i<ranks.length;i++){if(xp>=ranks[i].minXp){currentRank=ranks[i];nextRank=ranks[i+1]||ranks[i]}}const rankEl=document.getElementById('rank-text');rankEl.innerText=currentRank.name;rankEl.style.color=currentRank.color;rankEl.style.textShadow=`0 0 15px ${currentRank.color}`;const playerEl=document.getElementById('player-name');playerEl.textContent=`${getTitleByRank(currentRank.name)}`;const need=Math.max(1,nextRank.minXp-currentRank.minXp),have=xp-currentRank.minXp;let pct=(have/need)*100;if(currentRank.name==='S')pct=100;const fill=document.getElementById('xp-fill');fill.style.width=pct+'%';fill.style.backgroundColor=currentRank.color;const specialMsg=document.getElementById('rank-special-msg');if(currentRank.name==='S'){specialMsg.textContent='Poucos chegam até aqui.';specialMsg.hidden=false}else{specialMsg.hidden=true}document.getElementById('xp-text').innerText=(currentRank.name==='S')?`XP: ${xp} (máximo)`: `XP: ${xp} / ${nextRank.minXp}`;document.getElementById('streak-pill').textContent='🔥 '+(state.streakDays||0);highlightCurrentRank(currentRank.name);saveState(state)} 
- // ===== Missões 
- const DAILY_XP=20,DAILY_BONUS=10,WEEKLY_BONUS=40; 
- function renderDaily(){const wrap=document.getElementById('daily-list');const d=state.daily.items;wrap.innerHTML=`${missionToggle('train','Treinar hoje',d.train)}${missionToggle('cardio','20 min de cardio',d.cardio)}${missionToggle('sleep','Sono 7h+',d.sleep)}`;wrap.querySelectorAll('.mission-toggle input').forEach(cb=>{cb.addEventListener('change',e=>{const key=e.target.dataset.key,checked=e.target.checked;state.daily.items[key]=checked;if(checked){addXP(DAILY_XP)}if(key==='train'){if(checked&&!state.daily.credited.train){state.week.counts.train++;state.daily.credited.train=true}if(!checked&&state.daily.credited.train){state.week.counts.train=Math.max(0,state.week.counts.train-1);state.daily.credited.train=false}}if(key==='cardio'){if(checked&&!state.daily.credited.cardio){state.week.counts.cardio++;state.daily.credited.cardio=true}if(!checked&&state.daily.credited.cardio){state.week.counts.cardio=Math.max(0,state.week.counts.cardio-1);state.daily.credited.cardio=false}}const allDone=state.daily.items.train&&state.daily.items.cardio&&state.daily.items.sleep;if(allDone&&!state.daily.allBonusGiven){addXP(DAILY_BONUS);state.daily.allBonusGiven=true;state.streakDays=(state.streakDays||0)+1}checkWeeklyAchievements();renderWeekly();updateUI()})})} 
- function missionToggle(key,label,checked){return `<label class="mission-toggle"><input type="checkbox" data-key="${key}" ${checked?'checked':''}/><span class="box"></span><span class="text">${label}</span><span class="xp-pill">+${DAILY_XP} XP</span></label>`} 
- function renderWeekly(){const wrap=document.getElementById('weekly-list');const c=state.week.counts,a=state.week.achieved;wrap.innerHTML=`${weeklyProgress('Treinar 4x',c.train,4,a.train4,'w-train')}${weeklyProgress('4x cardio 20 min',c.cardio,4,a.cardio4,'w-cardio')}${weeklyCalories('700 calorias queimadas',c.calories,700,a.cal700)}`;const add=wrap.querySelector('[data-action="add-cal-100"]');if(add)add.addEventListener('click',()=>adjustCalories(100));const sub=wrap.querySelector('[data-action="sub-cal-100"]');if(sub)sub.addEventListener('click',()=>adjustCalories(-100))} 
- function weeklyProgress(title,value,target,achieved,id){const pct=Math.min(100,Math.round((value/target)*100));return `<div class="weekly-item ${achieved?'done':''}" id="${id}"><div class="w-title">${title}</div><div class="w-bar"><div class="w-fill" style="width:${pct}%"></div></div><div class="w-meta">${value} / ${target}</div>${achieved?'<div class="w-badge">Concluída ✓</div>':''}</div>`} 
- function weeklyCalories(title,value,target,achieved){const pct=Math.min(100,Math.round((value/target)*100));return `<div class="weekly-item ${achieved?'done':''}"><div class="w-title">${title}</div><div class="w-bar"><div class="w-fill" style="width:${pct}%"></div></div><div class="w-meta">${value} / ${target} kcal</div><div class="w-actions"><button class="mini-btn" data-action="sub-cal-100">-100</button><button class="mini-btn" data-action="add-cal-100">+100</button></div>${achieved?'<div class="w-badge">Concluída ✓</div>':''}</div>`} 
- function adjustCalories(delta){state.week.counts.calories=Math.max(0,(state.week.counts.calories||0)+delta);checkWeeklyAchievements();renderWeekly();updateUI()} 
- function checkWeeklyAchievements(){if(state.week.counts.train>=4&&!state.week.achieved.train4){addXP(WEEKLY_BONUS);state.week.achieved.train4=true}if(state.week.counts.cardio>=4&&!state.week.achieved.cardio4){addXP(WEEKLY_BONUS);state.week.achieved.cardio4=true}if(state.week.counts.calories>=700&&!state.week.achieved.cal700){addXP(WEEKLY_BONUS);state.week.achieved.cal700=true}} 
- // ===== Ranks 
- const rankColors={'S':'#FFD700','A':'#FF2424','B':'#9C27B0','C':'#2196F3','D':'#4CAF50','E':'#9e9e9e'}; 
- const rankCatalog=[{rank:'S',title:'Monstro',subtitle:'Performance lendária • Referência absoluta'},{rank:'A',title:'Elite',subtitle:'Força de alto nível • Execução de alto impacto'},{rank:'B',title:'Avançado',subtitle:'Força elevada • Alta eficiência'},{rank:'C',title:'Persistente',subtitle:'Disciplina ativa • Ritmo constante'},{rank:'D',title:'Consistente',subtitle:'Comprometido • Em ascensão'},{rank:'E',title:'Recruta',subtitle:'Início da jornada • Despertado recentemente'}]; 
- function renderRankCards(){const wrap=document.getElementById('rank-cards');wrap.innerHTML=rankCatalog.map(it=>{const color=rankColors[it.rank]||'#00d4ff';return `<article class="rank-card" data-rank="${it.rank}" style="--bar-color:${color}"><div class="info"><div class="name">${it.title}</div><div class="subtitle">${it.subtitle}</div></div><div class="tag">${it.rank}</div></article>`}).join('')} 
- function highlightCurrentRank(current){document.querySelectorAll('.rank-card').forEach(c=>{c.classList.toggle('current-rank',c.getAttribute('data-rank')===current)})} 
- function getTitleByRank(rankLetter){const found=rankCatalog.find(r=>r.rank===rankLetter);return found?found.title:''} 
- // ===== Personagens (PNG transparente) 
- const characters=[ 
- {id:'man', name:'Personagem M', src:'Man.png'}, 
- {id:'woman', name:'Personagem F', src:'Woman.png'} 
- ]; 
- function renderCharacters(){const wrap=document.getElementById('character-grid');wrap.innerHTML=characters.map(c=>` 
- <div class="char-card ${state.selectedCharacter===c.id?'selected':''}" data-id="${c.id}"> 
- <div class="char-img-wrap"><img class="char-img" src="${c.src}" alt="${c.name}"></div> 
- <div class="char-name">${c.name}</div> 
- <div class="char-choose"><button class="mini-btn" data-action="choose">Escolher</button></div> 
- </div>`).join('');wrap.querySelectorAll('.char-card .mini-btn').forEach(btn=>{btn.addEventListener('click',e=>{const card=e.currentTarget.closest('.char-card');const id=card?.getAttribute('data-id');if(!id)return;state.selectedCharacter=id;saveState(state);renderCharacters();if(navigator.vibrate)navigator.vibrate(10)})})} 
- // ===== Test: mudar rank manualmente 
- function getCurrentRankIndex(){let idx=0;for(let i=0;i<ranks.length;i++){if(xp>=ranks[i].minXp)idx=i}return idx} 
- function setRankByIndex(newIdx){newIdx=Math.max(0,Math.min(ranks.length-1,newIdx));xp=ranks[newIdx].minXp;state.xpTotal=xp;saveState(state);updateUI()} 
- function setupRankTestControls(){const up=document.getElementById('rank-up');const down=document.getElementById('rank-down');if(!up||!down)return;up.addEventListener('click',()=>{const idx=getCurrentRankIndex();setRankByIndex(idx+1);if(navigator.vibrate)navigator.vibrate(10)});down.addEventListener('click',()=>{const idx=getCurrentRankIndex();setRankByIndex(idx-1);if(navigator.vibrate)navigator.vibrate(10)})} 
- // ===== Tabs 
- function setupTabs(){const tabs=document.querySelectorAll('.tabbar .tab');const viewRank=document.getElementById('view-rank');const viewM=document.getElementById('view-missions');const viewC=document.getElementById('view-character');function activate(name){tabs.forEach(t=>{const on=t.dataset.tab===name;t.classList.toggle('active',on);t.setAttribute('aria-selected',on?'true':'false')});const map={rank:viewRank,missions:viewM,character:viewC};Object.entries(map).forEach(([k,el])=>{if(name===k){el.classList.add('active');el.removeAttribute('aria-hidden')}else{el.classList.remove('active');el.setAttribute('aria-hidden','true')}});state.lastTab=name;saveState(state)}tabs.forEach(t=>t.addEventListener('click',()=>{activate(t.dataset.tab);if(navigator.vibrate)navigator.vibrate(10)}));activate(state.lastTab==='missions'?'missions':(state.lastTab==='character'?'character':'rank'))} 
- // ===== Boot 
- ensureRollover(); 
- renderRankCards(); 
- renderDaily(); 
- renderWeekly(); 
- renderCharacters(); 
- updateUI(); 
- setupTabs(); 
- setupRankTestControls(); 
- // SW 
- if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('./service-worker.js').catch(console.error)})} 
- </script> 
-</body> 
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="RankApp" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#00d4ff" />
+  <title>RankApp</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .rank-special-msg{margin-top:6px;font-size:0.85rem;opacity:.85;color:#FFD700;text-align:center;animation:glowPulse 3s ease-in-out infinite}
+    @keyframes glowPulse{0%,100%{opacity:.7}50%{opacity:1}}
+    .rank-test-controls{display:flex;gap:8px;justify-content:center;margin:10px 0 0;opacity:.9}
+
+    /* PERSONAGEM */
+    .character-view { padding: 12px; }
+    .character-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
+    .char-card { position: relative; background: rgba(255,255,255,0.03); border: 1px solid rgba(0,212,255,0.35); border-radius: 14px; padding: 10px; cursor: pointer; transition: transform .1s ease, box-shadow .2s ease; }
+    .char-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0, 212, 255, 0.15); }
+    .char-card.selected { outline: 2px solid #00d4ff; box-shadow: 0 0 0 4px rgba(0,212,255,0.18) inset; }
+    .char-img-wrap { display:flex; align-items:center; justify-content:center; min-height: 220px; background: radial-gradient(140px 70px at 50% 60%, rgba(0,212,255,.08), transparent); border-radius: 10px; overflow: hidden; }
+    .char-img { width: 100%; height: auto; object-fit: contain; }
+    .char-name { margin-top: 6px; text-align:center; font-size: .95rem; opacity: .9; }
+    .char-choose { margin-top: 6px; display: flex; justify-content: center; }
+    .char-choose .mini-btn { padding: 6px 10px; }
+
+    /* Personagem selecionado (modo travado) */
+    .selected-char { display:flex; gap:16px; align-items:center; background: rgba(255,255,255,0.03); border:1px solid rgba(0,212,255,0.35); border-radius:14px; padding:12px; margin-bottom:12px; }
+    .selected-char .portrait { width: 140px; max-width: 45vw; border-radius: 12px; overflow: hidden; }
+    .selected-char .portrait img { width:100%; height:auto; display:block; }
+    .selected-char .meta { flex:1; }
+    .selected-char .meta .title { font-size:1.1rem; margin-bottom:4px; }
+    .selected-char .meta .lock { font-size:0.9rem; opacity:.85; }
+
+    /* Atributos */
+    .attr-panel { background: rgba(255,255,255,0.03); border:1px solid rgba(0,212,255,0.35); border-radius:14px; padding:12px; }
+    .attr-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:12px; }
+    .attr-points { font-weight:600; }
+    .attr-list { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+    .attr-row { display:flex; align-items:center; justify-content:space-between; gap:10px; background: rgba(0,212,255,0.06); border:1px solid rgba(0,212,255,0.25); border-radius:10px; padding:8px 10px; min-height:48px; }
+    .attr-name { font-weight:600; }
+    .attr-value { font-family: monospace; min-width: 20px; text-align:center; }
+    .attr-actions { display:flex; gap:6px; }
+    .attr-actions .mini-btn { padding: 4px 8px; }
+
+    /* força 2 colunas SEMPRE: em telas muito estreitas, deixa rolar horizontal se necessário */
+    .attr-panel { overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <!-- VIEW: RANK (Status + Relatório) -->
+  <section id="view-rank" class="view active">
+    <div class="player-status">
+      <h2>[ RANK DO JOGADOR ]</h2>
+      <div id="rank-text" class="rank-display">E</div>
+      <div id="player-name" class="player-name" aria-live="polite"></div>
+      <div id="rank-special-msg" class="rank-special-msg" hidden></div>
+      <div class="xp-bar-container">
+        <div id="xp-fill" class="xp-bar-fill"></div>
+      </div>
+      <p id="xp-text" class="xp-text">XP: 0 / 100</p>
+    </div>
+
+    <section id="rank-report" class="rank-report">
+      <h2>[ SISTEMAS DE RANKS ]</h2>
+      <div id="rank-cards"></div>
+      <div id="rank-test-controls" class="rank-test-controls">
+        <button id="rank-down" class="mini-btn">⬇️ Rank -</button>
+        <button id="rank-up" class="mini-btn">⬆️ Rank +</button>
+        <button id="reset-all" class="mini-btn">♻️ Resetar tudo</button>
+      </div>
+    </section>
+  </section>
+
+  <!-- VIEW: MISSÕES -->
+  <section id="view-missions" class="view" aria-hidden="true">
+    <section id="missions" class="missions">
+      <div class="missions-header">
+        <h2>[ MISSÕES ]</h2>
+        <div id="streak-pill" class="streak-pill" title="Dias seguidos com diárias completas">🔥 0</div>
+      </div>
+      <div class="missions-group">
+        <h3>Diárias</h3>
+        <div id="daily-list" class="mission-list"></div>
+        <small class="hint">Bônus diário: +10 XP ao completar todas as diárias do dia.</small>
+      </div>
+      <div class="missions-group">
+        <h3>Semanais</h3>
+        <div id="weekly-list" class="mission-list weekly"></div>
+        <small class="hint">Cada meta semanal concluída rende +40 XP.</small>
+      </div>
+    </section>
+  </section>
+
+  <!-- VIEW: PERSONAGEM -->
+  <section id="view-character" class="view" aria-hidden="true">
+    <section class="character-view">
+      <h2>[ PERSONAGEM ]</h2>
+      <p class="hint" id="char-hint">Seu personagem está definido. Distribua seus pontos de atributo.</p>
+      <div id="character-grid" class="character-grid"></div>
+    </section>
+  </section>
+
+  <!-- TAB BAR -->
+  <nav class="tabbar" role="tablist" aria-label="Navegação principal">
+    <button class="tab active" role="tab" aria-selected="true" data-tab="rank">🏆 <span>Rank</span></button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="missions">✅ <span>Missões</span></button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="character">👤 <span>Personagem</span></button>
+  </nav>
+
+  <!-- Toast container -->
+  <div id="toast-container"></div>
+
+  <script>
+  // ===== Utils
+  function pad(n){return n<10?'0'+n:''+n}
+  function todayStr(){const d=new Date();return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())}
+  function isoWeekId(date=new Date()){const d=new Date(Date.UTC(date.getFullYear(),date.getMonth(),date.getDate()));const dayNum=d.getUTCDay()||7;d.setUTCDate(d.getUTCDate()+4-dayNum);const yearStart=new Date(Date.UTC(d.getUTCFullYear(),0,1));const weekNo=Math.ceil((((d-yearStart)/86400000)+1)/7);return d.getUTCFullYear()+"-W"+pad(weekNo)}
+  function showToast(msg){ const c=document.getElementById('toast-container'); const el=document.createElement('div'); el.className='toast'; el.textContent=msg; c.appendChild(el); setTimeout(()=>{ el.remove(); }, 2200); }
+
+  // ===== Estado
+  const STORAGE_KEY='rankapp_state_v1';
+  function loadState(){
+    try{const raw=localStorage.getItem(STORAGE_KEY);if(!raw)throw 0;return JSON.parse(raw)}
+    catch(e){return {xpTotal:0,
+      daily:{date:todayStr(),items:{train:false,cardio:false,sleep:false},credited:{train:false,cardio:false},allBonusGiven:false},
+      week:{id:isoWeekId(),counts:{train:0,cardio:0,calories:0},achieved:{train4:false,cardio4:false,cal700:false}},
+      streakDays:0,lastTab:'rank',selectedCharacter:null,
+      attributes:{str:0,agi:0,vit:0,dis:0,foc:0},
+      attributePoints:0,
+      highestRankAchieved:'E',
+      currentRankName:'E'
+    }}
+  }
+  function ensureDefaults(){
+    state.attributes = state.attributes || {str:0,agi:0,vit:0,dis:0,foc:0};
+    if(typeof state.attributePoints !== 'number') state.attributePoints = 0;
+    if(!state.highestRankAchieved) state.highestRankAchieved = 'E';
+    if(!state.currentRankName) state.currentRankName = 'E';
+  }
+  function saveState(s){localStorage.setItem(STORAGE_KEY,JSON.stringify(s))}
+  let state=loadState();
+  function ensureRollover(){
+    const today=todayStr();
+    if(state.daily?.date!==today){state.daily={date:today,items:{train:false,cardio:false,sleep:false},credited:{train:false,cardio:false},allBonusGiven:false}}
+    const wid=isoWeekId();
+    if(state.week?.id!==wid){state.week={id:wid,counts:{train:0,cardio:0,calories:0},achieved:{train4:false,cardio4:false,cal700:false}}}
+  }
+
+  // ===== XP / Rank
+  let xp=state.xpTotal||0;
+  const ranks=[
+    {name:'E',minXp:0,color:'#9e9e9e'},
+    {name:'D',minXp:100,color:'#4CAF50'},
+    {name:'C',minXp:300,color:'#2196F3'},
+    {name:'B',minXp:600,color:'#9C27B0'},
+    {name:'A',minXp:1000,color:'#FF2424'},
+    {name:'S',minXp:2000,color:'#FFD700'}
+  ];
+  function addXP(a){xp+=a;state.xpTotal=xp}
+  function pointsForRank(letter){
+    switch(letter){
+      case 'D': return 1; case 'C': return 2; case 'B': return 3; case 'A': return 4; case 'S': return 5; default: return 0;
+    }
+  }
+  function updateUI(){
+    let currentRank=ranks[0],nextRank=ranks[1]||ranks[0];
+    for(let i=0;i<ranks.length;i++){ if(xp>=ranks[i].minXp){ currentRank=ranks[i]; nextRank=ranks[i+1]||ranks[i]; } }
+
+    const rankEl=document.getElementById('rank-text');
+    rankEl.innerText=currentRank.name;
+    rankEl.style.color=currentRank.color;
+    rankEl.style.textShadow=`0 0 15px ${currentRank.color}`;
+
+    const playerEl=document.getElementById('player-name');
+    playerEl.textContent=`${getTitleByRank(currentRank.name)}`;
+
+    const need=Math.max(1,nextRank.minXp-currentRank.minXp), have=xp-currentRank.minXp;
+    let pct=(have/need)*100; if(currentRank.name==='S') pct=100;
+    const fill=document.getElementById('xp-fill');
+    fill.style.width=pct+'%'; fill.style.backgroundColor=currentRank.color;
+
+    const specialMsg=document.getElementById('rank-special-msg');
+    if(currentRank.name==='S'){specialMsg.textContent='Poucos chegam até aqui.'; specialMsg.hidden=false} else {specialMsg.hidden=true}
+
+    document.getElementById('xp-text').innerText=(currentRank.name==='S')?`XP: ${xp} (máximo)`: `XP: ${xp} / ${nextRank.minXp}`;
+    document.getElementById('streak-pill').textContent='🔥 '+(state.streakDays||0);
+
+    highlightCurrentRank(currentRank.name);
+
+    // >>> Award de pontos quando muda de rank e é novo pico
+    const prevRankName = state.currentRankName || 'E';
+    const order=['E','D','C','B','A','S'];
+    if(currentRank.name !== prevRankName){
+      const curIdx = order.indexOf(currentRank.name);
+      const bestIdx = order.indexOf(state.highestRankAchieved||'E');
+      if(curIdx>bestIdx){
+        const award = pointsForRank(currentRank.name);
+        state.attributePoints = (state.attributePoints||0) + award;
+        state.highestRankAchieved = currentRank.name;
+        showToast(`+${award} ponto(s) de atributo por atingir o Rank ${currentRank.name}`);
+        renderCharacters();
+      }
+      state.currentRankName = currentRank.name;
+    }
+
+    saveState(state);
+  }
+
+  // ===== Missões
+  const DAILY_XP=20, DAILY_BONUS=10, WEEKLY_BONUS=40;
+  function renderDaily(){
+    const wrap=document.getElementById('daily-list');
+    const d=state.daily.items;
+    wrap.innerHTML=`${missionToggle('train','Treinar hoje',d.train)}${missionToggle('cardio','20 min de cardio',d.cardio)}${missionToggle('sleep','Sono 7h+',d.sleep)}`;
+    wrap.querySelectorAll('.mission-toggle input').forEach(cb=>{
+      cb.addEventListener('change',e=>{
+        const key=e.target.dataset.key, checked=e.target.checked;
+        ensureDefaults();
+        const attrs = state.attributes || {};
+        state.daily.items[key]=checked;
+
+        if(checked){
+          addXP(DAILY_XP);
+          if(key==='train'){ addXP(2*(attrs.str||0)); }
+          if(key==='cardio'){ addXP(2*(attrs.agi||0)); }
+        }
+
+        if(key==='train'){
+          if(checked && !state.daily.credited.train){ state.week.counts.train++; state.daily.credited.train=true }
+          if(!checked && state.daily.credited.train){ state.week.counts.train=Math.max(0,state.week.counts.train-1); state.daily.credited.train=false }
+        }
+        if(key==='cardio'){
+          if(checked && !state.daily.credited.cardio){ state.week.counts.cardio++; state.daily.credited.cardio=true }
+          if(!checked && state.daily.credited.cardio){ state.week.counts.cardio=Math.max(0,state.week.counts.cardio-1); state.daily.credited.cardio=false }
+        }
+
+        const allDone = state.daily.items.train && state.daily.items.cardio && state.daily.items.sleep;
+        if(allDone && !state.daily.allBonusGiven){
+          const dis = (attrs.dis||0);
+          addXP(DAILY_BONUS + dis);
+          state.daily.allBonusGiven=true;
+          state.streakDays=(state.streakDays||0)+1;
+        }
+
+        checkWeeklyAchievements();
+        renderWeekly();
+        updateUI();
+      })
+    })
+  }
+  function missionToggle(key,label,checked){
+    return `<label class=\"mission-toggle\"><input type=\"checkbox\" data-key=\"${key}\" ${checked?'checked':''}/><span class=\"box\"></span><span class=\"text\">${label}</span><span class=\"xp-pill\">+${DAILY_XP} XP</span></label>`
+  }
+
+  function renderWeekly(){
+    const wrap=document.getElementById('weekly-list');
+    const c=state.week.counts,a=state.week.achieved;
+    wrap.innerHTML=`${weeklyProgress('Treinar 4x',c.train,4,a.train4,'w-train')}${weeklyProgress('4x cardio 20 min',c.cardio,4,a.cardio4,'w-cardio')}${weeklyCalories('700 calorias queimadas',c.calories,700,a.cal700)}`;
+    const add=wrap.querySelector('[data-action=\"add-cal-100\"]'); if(add) add.addEventListener('click',()=>adjustCalories(100));
+    const sub=wrap.querySelector('[data-action=\"sub-cal-100\"]'); if(sub) sub.addEventListener('click',()=>adjustCalories(-100));
+  }
+  function weeklyProgress(title,value,target,achieved,id){
+    const pct=Math.min(100,Math.round((value/target)*100));
+    return `<div class=\"weekly-item ${achieved?'done':''}\" id=\"${id}\"><div class=\"w-title\">${title}</div><div class=\"w-bar\"><div class=\"w-fill\" style=\"width:${pct}%\"></div></div><div class=\"w-meta\">${value} / ${target}</div>${achieved?'<div class=\"w-badge\">Concluída ✓</div>':''}</div>`
+  }
+  function weeklyCalories(title,value,target,achieved){
+    const pct=Math.min(100,Math.round((value/target)*100));
+    return `<div class=\"weekly-item ${achieved?'done':''}\"><div class=\"w-title\">${title}</div><div class=\"w-bar\"><div class=\"w-fill\" style=\"width:${pct}%\"></div></div><div class=\"w-meta\">${value} / ${target} kcal</div><div class=\"w-actions\"><button class=\"mini-btn\" data-action=\"sub-cal-100\">-100</button><button class=\"mini-btn\" data-action=\"add-cal-100\">+100</button></div>${achieved?'<div class=\"w-badge\">Concluída ✓</div>':''}</div>`
+  }
+  function adjustCalories(delta){
+    ensureDefaults();
+    const vit = state.attributes?.vit || 0;
+    const mult = 1 + 0.05 * vit;
+    const effective = Math.round(delta * mult);
+    state.week.counts.calories = Math.max(0,(state.week.counts.calories||0)+effective);
+    checkWeeklyAchievements();
+    renderWeekly();
+    updateUI();
+  }
+  function checkWeeklyAchievements(){
+    ensureDefaults();
+    const foc = state.attributes?.foc || 0;
+    if(state.week.counts.train>=4 && !state.week.achieved.train4){ addXP(WEEKLY_BONUS + 2*foc); state.week.achieved.train4=true }
+    if(state.week.counts.cardio>=4 && !state.week.achieved.cardio4){ addXP(WEEKLY_BONUS + 2*foc); state.week.achieved.cardio4=true }
+    if(state.week.counts.calories>=700 && !state.week.achieved.cal700){ addXP(WEEKLY_BONUS + 2*foc); state.week.achieved.cal700=true }
+  }
+
+  // ===== Ranks
+  const rankColors={'S':'#FFD700','A':'#FF2424','B':'#9C27B0','C':'#2196F3','D':'#4CAF50','E':'#9e9e9e'};
+  const rankCatalog=[
+    {rank:'S',title:'Monstro',subtitle:'Performance lendária • Referência absoluta'},
+    {rank:'A',title:'Elite',subtitle:'Força de alto nível • Execução de alto impacto'},
+    {rank:'B',title:'Avançado',subtitle:'Força elevada • Alta eficiência'},
+    {rank:'C',title:'Persistente',subtitle:'Disciplina ativa • Ritmo constante'},
+    {rank:'D',title:'Consistente',subtitle:'Comprometido • Em ascensão'},
+    {rank:'E',title:'Recruta',subtitle:'Início da jornada • Despertado recentemente'}
+  ];
+  function renderRankCards(){
+    const wrap=document.getElementById('rank-cards');
+    wrap.innerHTML=rankCatalog.map(it=>{
+      const color=rankColors[it.rank]||'#00d4ff';
+      return `<article class=\"rank-card\" data-rank=\"${it.rank}\" style=\"--bar-color:${color}\"><div class=\"info\"><div class=\"name\">${it.title}</div><div class=\"subtitle\">${it.subtitle}</div></div><div class=\"tag\">${it.rank}</div></article>`
+    }).join('')
+  }
+  function highlightCurrentRank(current){ document.querySelectorAll('.rank-card').forEach(c=>{ c.classList.toggle('current-rank',c.getAttribute('data-rank')===current) }) }
+  function getTitleByRank(rankLetter){ const found=rankCatalog.find(r=>r.rank===rankLetter); return found?found.title:'' }
+
+  // ===== Personagens (PNG transparente)
+  const characters=[
+    {id:'man', name:'Personagem M', src:'Man.png'},
+    {id:'woman', name:'Personagem F', src:'Woman.png'}
+  ];
+
+  function renderCharacters(){
+    ensureDefaults();
+    const wrap=document.getElementById('character-grid');
+    const hint=document.getElementById('char-hint');
+    const selId = state.selectedCharacter;
+
+    if(!selId){
+      hint.textContent = 'Escolha seu personagem. A escolha é permanente.';
+      wrap.className = 'character-grid';
+      wrap.innerHTML = characters.map(c=>`
+        <div class=\"char-card\" data-id=\"${c.id}\">
+          <div class=\"char-img-wrap\"><img class=\"char-img\" src=\"${c.src}\" alt=\"${c.name}\"></div>
+          <div class=\"char-name\">${c.name}</div>
+          <div class=\"char-choose\"><button class=\"mini-btn\" data-action=\"choose\">Escolher</button></div>
+        </div>`).join('');
+      wrap.querySelectorAll('.char-card .mini-btn').forEach(btn=>{
+        btn.addEventListener('click',e=>{
+          const card=e.currentTarget.closest('.char-card');
+          const id=card?.getAttribute('data-id');
+          if(!id) return;
+          state.selectedCharacter=id; // TRAVA PERMANENTE
+          saveState(state);
+          renderCharacters();
+          if(navigator.vibrate) navigator.vibrate(10);
+        })
+      });
+      return;
+    }
+
+    // Modo travado (após escolher)
+    const c = characters.find(x=>x.id===selId) || {name:'Personagem',src:''};
+    hint.textContent = 'Seu personagem está definido. Distribua seus pontos de atributo.';
+    wrap.className = '';
+    const attrs = state.attributes || {str:0,agi:0,vit:0,dis:0,foc:0};
+
+    wrap.innerHTML = `
+      <div class=\"selected-char\">
+        <div class=\"portrait\"><img src=\"${c.src}\" alt=\"${c.name}\"></div>
+        <div class=\"meta\">
+          <div class=\"title\">${c.name}</div>
+          <div class=\"lock\">🔒 Escolha permanente</div>
+        </div>
+      </div>
+      <div class=\"attr-panel\">
+        <div class=\"attr-head\">
+          <div><strong>Atributos</strong></div>
+          <div class=\"attr-points\">Pontos disponíveis: <span id=\"attr-pts\">${state.attributePoints||0}</span></div>
+        </div>
+        <div class=\"attr-list\">
+          ${attrRow('Força (STR)','str',attrs.str)}
+          ${attrRow('Agilidade (AGI)','agi',attrs.agi)}
+          ${attrRow('Vigor (VIT)','vit',attrs.vit)}
+          ${attrRow('Disciplina (DIS)','dis',attrs.dis)}
+          ${attrRow('Foco (FOC)','foc',attrs.foc)}
+        </div>
+      </div>
+    `;
+
+    wrap.querySelectorAll('[data-inc]').forEach(btn=>{ btn.addEventListener('click',e=>{ const key=e.currentTarget.getAttribute('data-inc'); incAttr(key); }) })
+    wrap.querySelectorAll('[data-dec]').forEach(btn=>{ btn.addEventListener('click',e=>{ const key=e.currentTarget.getAttribute('data-dec'); decAttr(key); }) })
+  }
+
+  function attrRow(label,key,value){
+    const incDisabled = (state.attributePoints||0)<=0 || (value>=10);
+    const decDisabled = value<=0;
+    return `<div class=\"attr-row\"><div class=\"attr-name\">${label}</div><div class=\"attr-value\">${value}</div><div class=\"attr-actions\"><button class=\"mini-btn\" data-dec=\"${key}\" ${decDisabled?'disabled':''}>-</button><button class=\"mini-btn\" data-inc=\"${key}\" ${incDisabled?'disabled':''}>+</button></div></div>`
+  }
+  function incAttr(key){
+    ensureDefaults();
+    if(!state.attributePoints) return;
+    const cap=10;
+    const cur=state.attributes[key]||0;
+    if(cur>=cap) return;
+    state.attributes[key]=cur+1;
+    state.attributePoints-=1;
+    saveState(state);
+    renderCharacters();
+  }
+  function decAttr(key){
+    ensureDefaults();
+    const cur=state.attributes[key]||0;
+    if(cur<=0) return;
+    state.attributes[key]=cur-1;
+    state.attributePoints=(state.attributePoints||0)+1;
+    saveState(state);
+    renderCharacters();
+  }
+
+  // ===== Reset All (botão ao lado do Rank +/-)
+  function resetAll(){
+    try{ localStorage.removeItem(STORAGE_KEY);}catch(e){}
+    state = loadState();
+    xp = state.xpTotal || 0;
+    ensureRollover(); ensureDefaults();
+    renderRankCards(); renderDaily(); renderWeekly(); renderCharacters(); updateUI();
+    showToast('Estado resetado');
+  }
+
+  // ===== Test: mudar rank manualmente
+  function getCurrentRankIndex(){ let idx=0; for(let i=0;i<ranks.length;i++){ if(xp>=ranks[i].minXp) idx=i } return idx }
+  function setRankByIndex(newIdx){ newIdx=Math.max(0,Math.min(ranks.length-1,newIdx)); xp=ranks[newIdx].minXp; state.xpTotal=xp; saveState(state); updateUI() }
+  function setupRankTestControls(){
+    const up=document.getElementById('rank-up'); const down=document.getElementById('rank-down'); const reset=document.getElementById('reset-all');
+    if(up) up.addEventListener('click',()=>{ const idx=getCurrentRankIndex(); setRankByIndex(idx+1); if(navigator.vibrate) navigator.vibrate(10) });
+    if(down) down.addEventListener('click',()=>{ const idx=getCurrentRankIndex(); setRankByIndex(idx-1); if(navigator.vibrate) navigator.vibrate(10) });
+    if(reset) reset.addEventListener('click',()=>{ resetAll(); if(navigator.vibrate) navigator.vibrate(10) });
+  }
+
+  // ===== Tabs
+  function setupTabs(){
+    const tabs=document.querySelectorAll('.tabbar .tab');
+    const viewRank=document.getElementById('view-rank');
+    const viewM=document.getElementById('view-missions');
+    const viewC=document.getElementById('view-character');
+    function activate(name){
+      tabs.forEach(t=>{ const on=t.dataset.tab===name; t.classList.toggle('active',on); t.setAttribute('aria-selected',on?'true':'false') });
+      const map={rank:viewRank,missions:viewM,character:viewC};
+      Object.entries(map).forEach(([k,el])=>{ if(name===k){ el.classList.add('active'); el.removeAttribute('aria-hidden') } else { el.classList.remove('active'); el.setAttribute('aria-hidden','true') } });
+      state.lastTab=name; saveState(state)
+    }
+    tabs.forEach(t=> t.addEventListener('click',()=>{ activate(t.dataset.tab); if(navigator.vibrate) navigator.vibrate(10) }));
+    activate(state.lastTab==='missions'?'missions':(state.lastTab==='character'?'character':'rank'))
+  }
+
+  // ===== Boot
+  ensureRollover();
+  ensureDefaults();
+  renderRankCards();
+  renderDaily();
+  renderWeekly();
+  renderCharacters();
+  updateUI();
+  setupTabs();
+  setupRankTestControls();
+
+  // SW
+  if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('./service-worker.js').catch(console.error) }) }
+  </script>
+</body>
 </html>
