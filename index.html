@@ -24,7 +24,7 @@
 
     /* Personagem selecionado */
     .selected-char { display:flex; gap:12px; align-items:center; background: rgba(255,255,255,0.03); border:1px solid rgba(0,212,255,0.35); border-radius:12px; padding:10px; margin-bottom:10px; }
-    .selected-char .portrait { width: 110px; max-width: 40vw; border-radius: 10px; overflow: hidden; }
+    .selected-char .portrait { width: 132px; max-width: 40vw; border-radius: 10px; overflow: hidden; }
     .selected-char .portrait img { width:100%; height:auto; display:block; }
     .selected-char .meta { flex:1; min-height: 64px; display:flex; align-items:center; }
 
@@ -52,7 +52,10 @@
       .attr-row { grid-template-columns: minmax(52px,1.1fr) auto 72px; }
       .attr-actions .mini-btn { width:22px; height:22px; }
     }
-  </style>
+  
+/* Normalize PERSONAGEM heading to match others */
+.character-view h2{margin:0 0 8px 0;font-size:1.05rem;letter-spacing:.02em;font-weight:700}
+</style>
 </head>
 <body>
   <!-- VIEW: RANK (Status + Relatório) -->
@@ -230,11 +233,11 @@
       <div class="attr-panel">
         <div class="attr-head"><div><strong>Atributos</strong></div><div class="attr-points">Pontos disponíveis: <span id="attr-pts">${pointsLeft()}</span></div></div>
         <div class="attr-list" id="attr-list">
-          ${attrRow('FOR','str',attrs.str)}
-          ${attrRow('AGI','agi',attrs.agi)}
-          ${attrRow('VIG','vit',attrs.vit)}
-          ${attrRow('DIS','dis',attrs.dis)}
-          ${attrRow('FOC','foc',attrs.foc)}
+          ${attrRow('Força','str',attrs.str)}
+          ${attrRow('Agilidade','agi',attrs.agi)}
+          ${attrRow('Vigor','vit',attrs.vit)}
+          ${attrRow('Disciplina','dis',attrs.dis)}
+          ${attrRow('Foco','foc',attrs.foc)}
         </div>
       </div>`;
     document.querySelectorAll('[data-inc]').forEach(b=> b.addEventListener('click',e=>{ const key=e.currentTarget.getAttribute('data-inc'); incAttr(key); })); document.querySelectorAll('[data-dec]').forEach(b=> b.addEventListener('click',e=>{ const key=e.currentTarget.getAttribute('data-dec'); decAttr(key); })); window.scrollTo({top:y}); }
